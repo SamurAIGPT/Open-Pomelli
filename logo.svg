@@ -1,0 +1,19 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="90" fill="#f0f4f8" />
+  
+  <!-- AI Brain/Circuit Element -->
+  <path d="M70 80 Q70 50 100 50 Q130 50 130 80 Q130 110 100 110 Q70 110 70 80" 
+        fill="none" stroke="#2563eb" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="100" cy="80" r="15" fill="#2563eb" />
+  <line x1="100" y1="50" x2="100" y2="35" stroke="#2563eb" stroke-width="4" />
+  <line x1="130" y1="80" x2="145" y2="80" stroke="#2563eb" stroke-width="4" />
+  <line x1="70" y1="80" x2="55" y2="80" stroke="#2563eb" stroke-width="4" />
+
+  <!-- Marketing Megaphone Element -->
+  <path d="M90 120 L140 100 L140 160 L90 140 Z" fill="#1e293b" />
+  <rect x="75" y="125" width="15" height="20" rx="2" fill="#1e293b" />
+  
+  <!-- Sparkle/AI Magic -->
+  <path d="M155 60 L160 45 L165 60 L180 65 L165 70 L160 85 L155 70 L140 65 Z" fill="#fbbf24" />
+</svg>
