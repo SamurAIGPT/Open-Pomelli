@@ -1,97 +1,11 @@
-# API Keys and Secrets
-api_secrets.py
-*.env
+node_modules
+.next
+out
+dist
+*.log
+*.tsbuildinfo
 .env
 .env.local
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+prisma/dev.db
+prisma/dev.db-journal
 .DS_Store
-
-# Playwright
-.playwright/
-playwright/.auth/
-
-# Screenshots and Generated Assets
-screenshot_*.png
-*.mp4
-*.webm
-generated_assets/
-output/
-
-# Logs
-*.log
-logs/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Temporary files
-*.tmp
-temp/
-tmp/

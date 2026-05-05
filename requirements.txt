@@ -1,6 +1,0 @@
-aiohttp
-httpx
-fal_client
-playwright
-beautifulsoup4
-Pillow
