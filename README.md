@@ -4,6 +4,11 @@ Open-source alternative to Google's Pomelli. Paste any website URL → get an ed
 
 All AI calls (text, vision, image, image-edit, video) route through a single provider: [MuAPI](https://muapi.ai). Free **sandbox keys** are available for testing.
 
+## Related Projects
+
+- [Open-Poe-AI](https://github.com/Anil-matcha/Open-Poe-AI) — Open-source Poe alternative — chat with GPT, Claude, Gemini from one interface
+- [open-character-ai](https://github.com/Anil-matcha/open-character-ai) — Open-source Character.AI alternative with custom AI personas
+
 ## Features
 
 - **Brand DNA extraction** — paste a URL, Playwright scrapes the site, the screenshot is uploaded to MuAPI, and `gpt-5-nano` (text + vision) merges with CSS-extracted colors / fonts / logo into an editable brand profile.
