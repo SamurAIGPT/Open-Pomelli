@@ -18,7 +18,7 @@ function parseList(s: string | null): string[] {
 
 export default async function BrandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [dna, campaigns, opportunities, pendingAssetsCount] = await Promise.all([
+  const [dna, campaigns, opportunities, pendingAssetsCount, recentActivity] = await Promise.all([
     prisma.brandDNA.findUnique({ where: { id } }),
     prisma.campaign.findMany({
       where: { brandId: id },
@@ -32,6 +32,11 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
     }),
     prisma.asset.count({
       where: { campaign: { brandId: id }, approval: "PENDING" },
+    }),
+    prisma.activityLog.findMany({
+      where: { brandId: id },
+      orderBy: { createdAt: "desc" },
+      take: 4,
     }),
   ]);
   if (!dna) notFound();
@@ -143,7 +148,7 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
       </section>
 
       {campaigns.length > 0 && (
-        <section className="mx-auto mb-12 max-w-4xl px-6">
+        <section className="mx-auto mb-10 max-w-4xl px-6">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-neutral-300">
             Past campaigns
           </h2>
@@ -172,6 +177,43 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
           </ul>
         </section>
       )}
+
+      {/* Recent Activity Trail */}
+      <section className="mx-auto mb-16 max-w-4xl px-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-300">
+            Recent Activity & Audit Trail
+          </h2>
+          <Link
+            href={`/brand/${dna.id}/activity`}
+            className="text-xs text-neutral-400 hover:text-white transition"
+          >
+            View Full Activity Log →
+          </Link>
+        </div>
+
+        {recentActivity.length > 0 ? (
+          <ul className="divide-y divide-neutral-900 rounded-xl border border-neutral-800 bg-neutral-950">
+            {recentActivity.map((log) => (
+              <li key={log.id} className="flex items-center justify-between px-4 py-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-neutral-500 font-mono text-[10px] uppercase">
+                    [{log.category}]
+                  </span>
+                  <span className="font-medium text-neutral-200">{log.detail}</span>
+                </div>
+                <span className="text-[11px] text-neutral-500 shrink-0 ml-4">
+                  {new Date(log.createdAt).toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-400">
+            No activity logged yet. Operations and gate events will appear here automatically.
+          </div>
+        )}
+      </section>
     </>
   );
 }

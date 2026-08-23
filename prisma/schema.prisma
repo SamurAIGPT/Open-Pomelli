@@ -29,10 +29,11 @@ model BrandDNA {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  campaigns   Campaign[]
-  photoshoots Photoshoot[]
-  animations  Animation[]
+  campaigns     Campaign[]
+  photoshoots   Photoshoot[]
+  animations    Animation[]
   opportunities Opportunity[]
+  activity      ActivityLog[]
 }
 
 model Campaign {
@@ -112,4 +113,16 @@ model Asset {
   variants   String?
   approval   String   @default("PENDING")
   createdAt  DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String    @id @default(cuid())
+  brandId   String?
+  brand     BrandDNA? @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  actor     String    @default("user")
+  action    String
+  category  String    @default("general")
+  detail    String
+  metadata  String?
+  createdAt DateTime  @default(now())
 }

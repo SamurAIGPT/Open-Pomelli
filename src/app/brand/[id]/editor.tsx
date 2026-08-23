@@ -165,6 +165,12 @@ export function DnaEditor({ id, initial, sourceUrl }: { id: string; initial: Edi
             Approvals →
           </Link>
           <Link
+            href={`/brand/${id}/activity`}
+            className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm text-sky-300 hover:bg-sky-500/20"
+          >
+            Activity Log →
+          </Link>
+          <Link
             href={`/brand/${id}/opportunities`}
             className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300 hover:bg-amber-500/20"
           >

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateCampaign, type CampaignGoal } from "@/lib/campaign-generator";
+import { logActivity } from "@/lib/activity";
 
 const Body = z.object({
   brandId: z.string().min(1),
@@ -53,6 +54,24 @@ export async function POST(req: NextRequest) {
         data: { status: "converted" },
       }).catch(() => {});
     }
+
+    await logActivity({
+      brandId: brand.id,
+      actor: "user",
+      action: "create_campaign",
+      category: "campaign",
+      detail: `Created ${parsed.data.goal} campaign with 4 on-brand concepts${
+        parsed.data.eventId ? ` targeting event ${parsed.data.eventId}` : ""
+      }`,
+      metadata: {
+        campaignId: saved.id,
+        goal: saved.goal,
+        prompt: saved.prompt,
+        eventId: saved.eventId,
+        opportunityId: saved.opportunityId,
+        conceptsCount: concepts.length,
+      },
+    });
 
     return NextResponse.json({ id: saved.id });
   } catch (e) {

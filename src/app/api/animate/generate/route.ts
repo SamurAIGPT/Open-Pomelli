@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateAnimation } from "@/lib/animate";
 import { requireApprovedSourceImage, GatePreconditionError } from "@/lib/approvals";
+import { logActivity } from "@/lib/activity";
 
 const Body = z.object({
   sourceImageUrl: z.string().url(),
@@ -30,6 +31,19 @@ export async function POST(req: NextRequest) {
     );
   } catch (gateErr) {
     if (gateErr instanceof GatePreconditionError) {
+      await logActivity({
+        brandId: parsed.data.brandId,
+        actor: "gate-keeper",
+        action: "gate_blocked",
+        category: "governance",
+        detail: `Precondition Gate: Blocked video generation. Source ${gateErr.sourceType} (${gateErr.sourceId || "image"}) is not APPROVED (${gateErr.currentApproval}).`,
+        metadata: {
+          sourceType: gateErr.sourceType,
+          sourceId: gateErr.sourceId,
+          currentApproval: gateErr.currentApproval,
+        },
+      });
+
       return NextResponse.json(
         {
           error: "GATE_PRECONDITION_FAILED",
@@ -70,6 +84,23 @@ export async function POST(req: NextRequest) {
       where: { id: row.id },
       data: { videoUrl },
     });
+
+    await logActivity({
+      brandId: parsed.data.brandId,
+      actor: "ai-agent",
+      action: "generate_animation",
+      category: "generation",
+      detail: `Generated animated video (${updated.duration}s, ${updated.resolution}) via seedance-lite-i2v`,
+      metadata: {
+        animationId: updated.id,
+        videoUrl: updated.videoUrl,
+        prompt: updated.prompt,
+        duration: updated.duration,
+        resolution: updated.resolution,
+        sourceType: updated.sourceType,
+      },
+    });
+
     return NextResponse.json({
       id: updated.id,
       videoUrl: updated.videoUrl,
