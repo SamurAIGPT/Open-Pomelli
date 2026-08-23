@@ -4,6 +4,8 @@ import Link from "next/link";
 import { DnaEditor, type EditableDNA } from "./editor";
 import { CAMPAIGN_GOALS } from "@/lib/campaign-generator";
 
+import { daysUntil } from "@/lib/calendar";
+
 function parseList(s: string | null): string[] {
   if (!s) return [];
   try {
@@ -16,12 +18,17 @@ function parseList(s: string | null): string[] {
 
 export default async function BrandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [dna, campaigns] = await Promise.all([
+  const [dna, campaigns, opportunities] = await Promise.all([
     prisma.brandDNA.findUnique({ where: { id } }),
     prisma.campaign.findMany({
       where: { brandId: id },
       orderBy: { createdAt: "desc" },
       take: 10,
+    }),
+    prisma.opportunity.findMany({
+      where: { brandId: id, status: "new" },
+      orderBy: { eventDate: "asc" },
+      take: 3,
     }),
   ]);
   if (!dna) notFound();
@@ -47,6 +54,67 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <DnaEditor id={dna.id} sourceUrl={dna.url} initial={initial} />
+
+      {/* Upcoming Opportunities Widget */}
+      <section className="mx-auto mb-8 max-w-4xl px-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-300">
+            Upcoming Opportunities
+          </h2>
+          <Link
+            href={`/brand/${dna.id}/opportunities`}
+            className="text-xs text-neutral-400 hover:text-white transition"
+          >
+            View Calendar & All Opportunities ({opportunities.length > 0 ? `${opportunities.length} upcoming` : "Scan"}) →
+          </Link>
+        </div>
+
+        {opportunities.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {opportunities.map((opp) => {
+              const days = daysUntil(opp.eventDate);
+              return (
+                <Link
+                  key={opp.id}
+                  href={`/brand/${dna.id}/opportunities`}
+                  className="group flex flex-col justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 transition hover:border-neutral-700 hover:bg-neutral-900/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 text-[10px]">
+                      <span className="font-semibold uppercase tracking-wider text-amber-400">
+                        {opp.category}
+                      </span>
+                      <span className="text-neutral-400">
+                        {days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days}d`}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-sm font-semibold text-white group-hover:text-amber-300 transition">
+                      {opp.eventName}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-400">
+                      {opp.angle}
+                    </p>
+                  </div>
+                  <div className="mt-3 text-[11px] font-medium text-neutral-500 group-hover:text-neutral-300">
+                    Review opportunity →
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-400">
+            <span>Scan the next 90 days against your Brand DNA to discover seasonal and holiday campaign moments.</span>
+            <Link
+              href={`/brand/${dna.id}/opportunities`}
+              className="ml-4 shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 font-medium text-white hover:bg-neutral-700 transition"
+            >
+              Scan Calendar
+            </Link>
+          </div>
+        )}
+      </section>
+
       {campaigns.length > 0 && (
         <section className="mx-auto mb-12 max-w-4xl px-6">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-neutral-300">

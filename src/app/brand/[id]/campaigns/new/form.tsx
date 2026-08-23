@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CAMPAIGN_GOALS, type CampaignGoal } from "@/lib/campaign-generator";
 
-export function NewCampaignForm({ brandId }: { brandId: string }) {
-  const [goal, setGoal] = useState<CampaignGoal>("product_launch");
-  const [prompt, setPrompt] = useState("");
+function FormContent({ brandId }: { brandId: string }) {
+  const searchParams = useSearchParams();
+  const initialGoal = (searchParams.get("goal") as CampaignGoal) || "product_launch";
+  const initialPrompt = searchParams.get("prompt") || "";
+  const eventId = searchParams.get("eventId") || null;
+
+  const [goal, setGoal] = useState<CampaignGoal>(
+    CAMPAIGN_GOALS.some((g) => g.value === initialGoal) ? initialGoal : "product_launch"
+  );
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -19,7 +26,12 @@ export function NewCampaignForm({ brandId }: { brandId: string }) {
       const res = await fetch("/api/campaign/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandId, goal, prompt: prompt.trim() || null }),
+        body: JSON.stringify({
+          brandId,
+          goal,
+          prompt: prompt.trim() || null,
+          eventId,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ? JSON.stringify(json.error) : `HTTP ${res.status}`);
@@ -91,5 +103,13 @@ export function NewCampaignForm({ brandId }: { brandId: string }) {
         </button>
       </div>
     </form>
+  );
+}
+
+export function NewCampaignForm({ brandId }: { brandId: string }) {
+  return (
+    <Suspense fallback={<div className="text-sm text-neutral-400">Loading campaign form...</div>}>
+      <FormContent brandId={brandId} />
+    </Suspense>
   );
 }

@@ -32,18 +32,39 @@ model BrandDNA {
   campaigns   Campaign[]
   photoshoots Photoshoot[]
   animations  Animation[]
+  opportunities Opportunity[]
 }
 
 model Campaign {
-  id        String   @id @default(cuid())
-  brandId   String
-  brand     BrandDNA @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  goal      String
-  prompt    String?
-  concepts  String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  brandId       String
+  brand         BrandDNA @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  goal          String
+  prompt        String?
+  concepts      String?
+  eventId       String?
+  opportunityId String?
+  createdAt     DateTime @default(now())
 
   assets Asset[]
+}
+
+model Opportunity {
+  id             String    @id @default(cuid())
+  brandId        String
+  brand          BrandDNA  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  eventId        String
+  eventName      String
+  eventDate      String
+  category       String
+  angle          String
+  suggestedOffer String?
+  priority       String    @default("medium")
+  status         String    @default("new")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([brandId, eventId])
 }
 
 model Photoshoot {

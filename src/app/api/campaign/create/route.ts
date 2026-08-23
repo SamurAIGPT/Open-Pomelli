@@ -14,6 +14,8 @@ const Body = z.object({
     "sales",
   ]),
   prompt: z.string().max(2000).optional().nullable(),
+  eventId: z.string().optional().nullable(),
+  opportunityId: z.string().optional().nullable(),
 });
 
 export const maxDuration = 180;
@@ -39,9 +41,19 @@ export async function POST(req: NextRequest) {
         brandId: brand.id,
         goal: parsed.data.goal,
         prompt: parsed.data.prompt ?? null,
+        eventId: parsed.data.eventId ?? null,
+        opportunityId: parsed.data.opportunityId ?? null,
         concepts: JSON.stringify(concepts),
       },
     });
+
+    if (parsed.data.opportunityId) {
+      await prisma.opportunity.update({
+        where: { id: parsed.data.opportunityId },
+        data: { status: "converted" },
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ id: saved.id });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
