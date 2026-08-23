@@ -159,6 +159,12 @@ export function DnaEditor({ id, initial, sourceUrl }: { id: string; initial: Edi
             {saving ? "Saving…" : "Save DNA"}
           </button>
           <Link
+            href={`/brand/${id}/products`}
+            className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm text-indigo-300 hover:bg-indigo-500/20"
+          >
+            Products →
+          </Link>
+          <Link
             href={`/brand/${id}/approvals`}
             className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
           >

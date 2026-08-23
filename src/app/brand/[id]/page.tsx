@@ -18,7 +18,7 @@ function parseList(s: string | null): string[] {
 
 export default async function BrandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [dna, campaigns, opportunities, pendingAssetsCount, recentActivity] = await Promise.all([
+  const [dna, campaigns, opportunities, pendingAssetsCount, recentActivity, products] = await Promise.all([
     prisma.brandDNA.findUnique({ where: { id } }),
     prisma.campaign.findMany({
       where: { brandId: id },
@@ -37,6 +37,11 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
       where: { brandId: id },
       orderBy: { createdAt: "desc" },
       take: 4,
+    }),
+    prisma.product.findMany({
+      where: { brandId: id },
+      orderBy: { createdAt: "desc" },
+      take: 3,
     }),
   ]);
   if (!dna) notFound();
@@ -142,6 +147,88 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
               className="ml-4 shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 font-medium text-white hover:bg-neutral-700 transition"
             >
               Scan Calendar
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* Product Catalog Widget */}
+      <section className="mx-auto mb-8 max-w-4xl px-6">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-300">
+              Product Catalog & Verified Claims
+            </h2>
+            <span className="rounded bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-400">
+              Fidelity Locked
+            </span>
+          </div>
+          <Link
+            href={`/brand/${dna.id}/products`}
+            className="text-xs text-neutral-400 hover:text-white transition"
+          >
+            Manage Catalog ({products.length} registered) →
+          </Link>
+        </div>
+
+        {products.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {products.map((prod) => {
+              let claimsList: string[] = [];
+              try {
+                const parsed = JSON.parse(prod.claims);
+                if (Array.isArray(parsed)) claimsList = parsed;
+              } catch {}
+
+              return (
+                <Link
+                  key={prod.id}
+                  href={`/brand/${dna.id}/products`}
+                  className="group flex flex-col justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 transition hover:border-neutral-700 hover:bg-neutral-900/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 text-[10px]">
+                      <span className="font-mono text-emerald-400 font-medium">
+                        {prod.currency} {prod.price.toFixed(2)}
+                      </span>
+                      {prod.fidelityLock && (
+                        <span className="text-emerald-300">🔒 Locked</span>
+                      )}
+                    </div>
+                    <h3 className="mt-2 text-sm font-semibold text-white group-hover:text-indigo-300 transition line-clamp-1">
+                      {prod.name}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-400">
+                      {prod.description}
+                    </p>
+                    {claimsList.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1">
+                        {claimsList.slice(0, 2).map((c, i) => (
+                          <span
+                            key={i}
+                            className="rounded bg-emerald-950/60 border border-emerald-800/40 px-1.5 py-0.2 text-[10px] text-emerald-300 line-clamp-1"
+                          >
+                            ✓ {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3 text-[11px] font-medium text-neutral-500 group-hover:text-neutral-300">
+                    View product facts →
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-400">
+            <span>Register official products and factual claims to enforce anti-hallucination fidelity across AI campaigns.</span>
+            <Link
+              href={`/brand/${dna.id}/products`}
+              className="ml-4 shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 font-medium text-white hover:bg-neutral-700 transition"
+            >
+              + Add Product
             </Link>
           </div>
         )}

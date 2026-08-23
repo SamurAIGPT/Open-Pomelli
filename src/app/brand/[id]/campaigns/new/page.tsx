@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getProductsByBrand } from "@/lib/products";
 import { NewCampaignForm } from "./form";
 
 export default async function NewCampaignPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const brand = await prisma.brandDNA.findUnique({ where: { id } });
+  const [brand, products] = await Promise.all([
+    prisma.brandDNA.findUnique({ where: { id } }),
+    getProductsByBrand(id),
+  ]);
   if (!brand) notFound();
 
   return (
@@ -22,7 +26,7 @@ export default async function NewCampaignPage({ params }: { params: Promise<{ id
         </Link>
       </div>
 
-      <NewCampaignForm brandId={brand.id} />
+      <NewCampaignForm brandId={brand.id} products={products} />
     </main>
   );
 }

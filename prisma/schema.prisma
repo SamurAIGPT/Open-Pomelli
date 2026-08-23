@@ -34,18 +34,41 @@ model BrandDNA {
   animations    Animation[]
   opportunities Opportunity[]
   activity      ActivityLog[]
+  products      Product[]
+}
+
+model Product {
+  id           String    @id @default(cuid())
+  brandId      String
+  brand        BrandDNA  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name         String
+  sku          String?
+  description  String
+  price        Float
+  currency     String    @default("USD")
+  category     String?
+  images       String    @default("[]")
+  benefits     String    @default("[]")
+  claims       String    @default("[]")
+  fidelityLock Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  campaigns Campaign[]
 }
 
 model Campaign {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   brandId       String
-  brand         BrandDNA @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand         BrandDNA  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
   goal          String
   prompt        String?
   concepts      String?
   eventId       String?
   opportunityId String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   assets Asset[]
 }

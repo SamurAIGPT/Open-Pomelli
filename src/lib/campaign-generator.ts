@@ -1,5 +1,6 @@
 import { muapi } from "./muapi";
 import type { BrandDNA } from "@prisma/client";
+import { buildProductFidelityPrompt, type ProductItem } from "./products";
 
 export type CampaignGoal =
   | "product_launch"
@@ -39,15 +40,22 @@ function parseList(s: string | null): string[] {
   }
 }
 
-function buildPrompt(brand: BrandDNA, goal: CampaignGoal, userPrompt: string | null): string {
+function buildPrompt(
+  brand: BrandDNA,
+  goal: CampaignGoal,
+  userPrompt: string | null,
+  product?: ProductItem | null
+): string {
   const tone = parseList(brand.toneOfVoice).join(", ") || "—";
   const personality = parseList(brand.brandPersonality).join(", ") || "—";
   const messages = parseList(brand.keyMessages).join(" • ") || "—";
   const primary = parseList(brand.primaryColors).join(", ") || "—";
 
   const goalLabel = CAMPAIGN_GOALS.find((g) => g.value === goal)?.label ?? goal;
+  const productSection = product ? buildProductFidelityPrompt(product) : "";
 
   return `You are a senior brand strategist. Generate exactly 4 distinct on-brand marketing campaign concepts for the brand below, tailored to the goal: "${goalLabel}".
+${product ? `\nTarget Product: "${product.name}". Enforce all verified claims and fidelity lock rules.` : ""}
 
 Return STRICT JSON only — an array of 4 objects with this exact shape (no markdown, no commentary):
 [
@@ -64,7 +72,7 @@ Return STRICT JSON only — an array of 4 objects with this exact shape (no mark
 ]
 
 Keep concepts genuinely distinct in angle. Match the brand voice and palette. Be specific to the brand, not generic marketing fluff.
-
+${productSection}
 BRAND
 - Name: ${brand.brandName || "—"}
 - Industry: ${brand.industry || "—"}
@@ -107,8 +115,9 @@ export async function generateCampaign(
   brand: BrandDNA,
   goal: CampaignGoal,
   userPrompt: string | null,
+  product?: ProductItem | null,
 ): Promise<CampaignConcept[]> {
-  const prompt = buildPrompt(brand, goal, userPrompt);
+  const prompt = buildPrompt(brand, goal, userPrompt, product);
   const raw = await muapi.text(prompt);
   return parseConcepts(raw);
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateCampaign, type CampaignGoal } from "@/lib/campaign-generator";
+import { parseProduct } from "@/lib/products";
 import { logActivity } from "@/lib/activity";
 
 const Body = z.object({
@@ -17,6 +18,7 @@ const Body = z.object({
   prompt: z.string().max(2000).optional().nullable(),
   eventId: z.string().optional().nullable(),
   opportunityId: z.string().optional().nullable(),
+  productId: z.string().optional().nullable(),
 });
 
 export const maxDuration = 180;
@@ -31,11 +33,20 @@ export async function POST(req: NextRequest) {
   const brand = await prisma.brandDNA.findUnique({ where: { id: parsed.data.brandId } });
   if (!brand) return NextResponse.json({ error: "brand not found" }, { status: 404 });
 
+  let product = null;
+  if (parsed.data.productId) {
+    const rawProduct = await prisma.product.findUnique({ where: { id: parsed.data.productId } });
+    if (rawProduct) {
+      product = parseProduct(rawProduct);
+    }
+  }
+
   try {
     const concepts = await generateCampaign(
       brand,
       parsed.data.goal as CampaignGoal,
       parsed.data.prompt ?? null,
+      product
     );
     const saved = await prisma.campaign.create({
       data: {
@@ -44,6 +55,7 @@ export async function POST(req: NextRequest) {
         prompt: parsed.data.prompt ?? null,
         eventId: parsed.data.eventId ?? null,
         opportunityId: parsed.data.opportunityId ?? null,
+        productId: product?.id ?? null,
         concepts: JSON.stringify(concepts),
       },
     });
@@ -61,11 +73,13 @@ export async function POST(req: NextRequest) {
       action: "create_campaign",
       category: "campaign",
       detail: `Created ${parsed.data.goal} campaign with 4 on-brand concepts${
-        parsed.data.eventId ? ` targeting event ${parsed.data.eventId}` : ""
-      }`,
+        product ? ` (Locked to product "${product.name}")` : ""
+      }${parsed.data.eventId ? ` targeting event ${parsed.data.eventId}` : ""}`,
       metadata: {
         campaignId: saved.id,
         goal: saved.goal,
+        productId: product?.id,
+        productName: product?.name,
         prompt: saved.prompt,
         eventId: saved.eventId,
         opportunityId: saved.opportunityId,
