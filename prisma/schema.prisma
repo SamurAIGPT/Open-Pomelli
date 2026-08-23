@@ -29,21 +29,66 @@ model BrandDNA {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  campaigns   Campaign[]
-  photoshoots Photoshoot[]
-  animations  Animation[]
+  campaigns     Campaign[]
+  photoshoots   Photoshoot[]
+  animations    Animation[]
+  opportunities Opportunity[]
+  activity      ActivityLog[]
+  products      Product[]
+}
+
+model Product {
+  id           String    @id @default(cuid())
+  brandId      String
+  brand        BrandDNA  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name         String
+  sku          String?
+  description  String
+  price        Float
+  currency     String    @default("USD")
+  category     String?
+  images       String    @default("[]")
+  benefits     String    @default("[]")
+  claims       String    @default("[]")
+  fidelityLock Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  campaigns Campaign[]
 }
 
 model Campaign {
-  id        String   @id @default(cuid())
-  brandId   String
-  brand     BrandDNA @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  goal      String
-  prompt    String?
-  concepts  String?
-  createdAt DateTime @default(now())
+  id            String    @id @default(cuid())
+  brandId       String
+  brand         BrandDNA  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  goal          String
+  prompt        String?
+  concepts      String?
+  eventId       String?
+  opportunityId String?
+  createdAt     DateTime  @default(now())
 
   assets Asset[]
+}
+
+model Opportunity {
+  id             String    @id @default(cuid())
+  brandId        String
+  brand          BrandDNA  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  eventId        String
+  eventName      String
+  eventDate      String
+  category       String
+  angle          String
+  suggestedOffer String?
+  priority       String    @default("medium")
+  status         String    @default("new")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([brandId, eventId])
 }
 
 model Photoshoot {
@@ -58,6 +103,7 @@ model Photoshoot {
   imageUrl        String?
   aspect          String    @default("1:1")
   resolution      String    @default("2k")
+  approval        String    @default("PENDING")
   createdAt       DateTime  @default(now())
 }
 
@@ -72,6 +118,7 @@ model Animation {
   videoUrl       String?
   duration       Int       @default(5)
   resolution     String    @default("720p")
+  approval       String    @default("PENDING")
   createdAt      DateTime  @default(now())
 }
 
@@ -87,5 +134,18 @@ model Asset {
   body       String?
   cta        String?
   variants   String?
+  approval   String   @default("PENDING")
   createdAt  DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String    @id @default(cuid())
+  brandId   String?
+  brand     BrandDNA? @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  actor     String    @default("user")
+  action    String
+  category  String    @default("general")
+  detail    String
+  metadata  String?
+  createdAt DateTime  @default(now())
 }

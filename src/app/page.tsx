@@ -59,11 +59,17 @@ export default function Home() {
 
       {error && <div className="w-full rounded-lg border border-red-900 bg-red-950/50 p-3 text-sm text-red-300">{error}</div>}
 
-      <div className="flex gap-4 text-xs text-neutral-400">
-        <Link href="/photo-studio" className="hover:text-white">
+      <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-neutral-400">
+        <Link href="/calendar" className="hover:text-amber-300 transition">
+          Marketing Calendar →
+        </Link>
+        <Link href="/activity" className="hover:text-sky-300 transition">
+          Activity Log →
+        </Link>
+        <Link href="/photo-studio" className="hover:text-white transition">
           Photo Studio →
         </Link>
-        <Link href="/animate" className="hover:text-white">
+        <Link href="/animate" className="hover:text-white transition">
           Animate →
         </Link>
       </div>

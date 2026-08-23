@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getPlatform } from "@/lib/platforms";
 import { generateAsset } from "@/lib/asset-generator";
+import { logActivity } from "@/lib/activity";
 import type { CampaignConcept } from "@/lib/campaign-generator";
 
 const Body = z.object({
@@ -51,8 +52,26 @@ export async function POST(req: NextRequest) {
         body: result.body,
         cta: result.cta,
         variants: JSON.stringify({ conceptIndex, platformId: spec.id, aspect: spec.aspect }),
+        approval: "PENDING",
       },
     });
+
+    await logActivity({
+      brandId: campaign.brandId,
+      actor: "ai-agent",
+      action: "generate_asset",
+      category: "generation",
+      detail: `Generated on-brand creative for ${spec.label} (${spec.platform} / ${spec.format}) — PENDING review`,
+      metadata: {
+        assetId: saved.id,
+        campaignId,
+        platformId: spec.id,
+        platform: spec.platform,
+        format: spec.format,
+        headline: saved.headline,
+      },
+    });
+
     return NextResponse.json({
       id: saved.id,
       platformId: spec.id,

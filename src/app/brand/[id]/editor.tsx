@@ -150,23 +150,47 @@ export function DnaEditor({ id, initial, sourceUrl }: { id: string; initial: Edi
             <span className="text-neutral-500">Edit any field, then save.</span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-lg bg-white px-5 py-2 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50"
+            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save DNA"}
           </button>
           <Link
+            href={`/brand/${id}/products`}
+            className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm text-indigo-300 hover:bg-indigo-500/20"
+          >
+            Products →
+          </Link>
+          <Link
+            href={`/brand/${id}/approvals`}
+            className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
+          >
+            Approvals →
+          </Link>
+          <Link
+            href={`/brand/${id}/activity`}
+            className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm text-sky-300 hover:bg-sky-500/20"
+          >
+            Activity Log →
+          </Link>
+          <Link
+            href={`/brand/${id}/opportunities`}
+            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300 hover:bg-amber-500/20"
+          >
+            Opportunities →
+          </Link>
+          <Link
             href={`/brand/${id}/photo-studio`}
-            className="rounded-lg border border-neutral-700 px-5 py-2 text-sm hover:border-neutral-500"
+            className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500"
           >
             Photo Studio →
           </Link>
           <Link
             href={`/brand/${id}/campaigns/new`}
-            className="rounded-lg border border-neutral-700 px-5 py-2 text-sm hover:border-neutral-500"
+            className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500"
           >
             Generate campaign →
           </Link>

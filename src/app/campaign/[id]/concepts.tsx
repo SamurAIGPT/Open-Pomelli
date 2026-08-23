@@ -14,6 +14,8 @@ export type ExistingAsset = {
   headline: string | null;
   body: string | null;
   cta: string | null;
+  approval?: string;
+  brandId?: string;
 };
 
 type Generation = {
@@ -43,6 +45,15 @@ export function ConceptsPanel({
     }));
   }
 
+  function updateAssetApproval(conceptIndex: number, assetId: string, approval: string) {
+    setAssetsByConcept((prev) => ({
+      ...prev,
+      [conceptIndex]: (prev[conceptIndex] ?? []).map((a) =>
+        a.id === assetId ? { ...a, approval } : a
+      ),
+    }));
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {concepts.map((c, i) => (
@@ -53,6 +64,7 @@ export function ConceptsPanel({
           concept={c}
           existing={assetsByConcept[i] ?? []}
           onAssetCreated={(a) => appendAsset(i, a)}
+          onApprovalChange={(assetId, approval) => updateAssetApproval(i, assetId, approval)}
         />
       ))}
     </div>
@@ -65,12 +77,14 @@ function ConceptCard({
   concept,
   existing,
   onAssetCreated,
+  onApprovalChange,
 }: {
   campaignId: string;
   conceptIndex: number;
   concept: CampaignConcept;
   existing: ExistingAsset[];
   onAssetCreated: (a: ExistingAsset) => void;
+  onApprovalChange: (assetId: string, approval: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const recommended = new Set(concept.recommended_platforms);
@@ -160,7 +174,11 @@ function ConceptCard({
           </p>
           <div className="grid grid-cols-2 gap-2">
             {existing.map((a) => (
-              <AssetThumb key={a.id} asset={a} />
+              <AssetThumb
+                key={a.id}
+                asset={a}
+                onApprovalChange={(status) => onApprovalChange(a.id, status)}
+              />
             ))}
           </div>
         </div>
@@ -237,26 +255,127 @@ function ProgressRow({ gen }: { gen: Generation }) {
   );
 }
 
-function AssetThumb({ asset }: { asset: ExistingAsset }) {
+function AssetThumb({
+  asset,
+  onApprovalChange,
+}: {
+  asset: ExistingAsset;
+  onApprovalChange?: (newApproval: string) => void;
+}) {
   const platform = asset.platformId ? PLATFORMS.find((p) => p.id === asset.platformId) : null;
+  const [approval, setApproval] = useState(asset.approval || "PENDING");
+  const [updating, setUpdating] = useState(false);
+
+  const isApproved = approval === "APPROVED";
+  const isRejected = approval === "REJECTED";
+
+  async function updateApproval(newStatus: "APPROVED" | "REJECTED" | "PENDING", e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setUpdating(true);
+    try {
+      const res = await fetch("/api/approval", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "asset", id: asset.id, approval: newStatus }),
+      });
+      if (res.ok) {
+        setApproval(newStatus);
+        onApprovalChange?.(newStatus);
+      }
+    } catch {}
+    setUpdating(false);
+  }
+
   return (
-    <Link
-      href={`/asset/${asset.id}/edit`}
-      className="block overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 transition hover:border-neutral-600"
+    <div
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-lg border bg-neutral-900 transition ${
+        isApproved
+          ? "border-emerald-500/40 hover:border-emerald-500/60"
+          : isRejected
+          ? "border-rose-500/40 hover:border-rose-500/60"
+          : "border-neutral-800 hover:border-neutral-700"
+      }`}
     >
-      {asset.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={asset.imageUrl} alt={asset.headline ?? ""} className="block w-full" />
-      ) : (
-        <div className="flex aspect-square items-center justify-center text-xs text-neutral-600">no image</div>
-      )}
-      <div className="space-y-0.5 p-2 text-[11px]">
-        <p className="text-neutral-500">{platform?.label ?? `${asset.platform} / ${asset.format}`}</p>
-        {asset.headline && <p className="font-medium text-neutral-200">{asset.headline}</p>}
-        {asset.cta && <p className="text-neutral-400">{asset.cta}</p>}
-        <p className="pt-1 text-[10px] text-neutral-500">Edit →</p>
+      <Link href={`/asset/${asset.id}/edit`} className="block">
+        <div className="relative aspect-square w-full bg-neutral-950">
+          {asset.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={asset.imageUrl} alt={asset.headline ?? ""} className="block h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xs text-neutral-600">no image</div>
+          )}
+
+          {/* Status Badge */}
+          <div className="absolute left-2 top-2">
+            <span
+              className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider shadow-sm backdrop-blur-md ${
+                isApproved
+                  ? "bg-emerald-950/90 text-emerald-300 border border-emerald-500/40"
+                  : isRejected
+                  ? "bg-rose-950/90 text-rose-300 border border-rose-500/40"
+                  : "bg-amber-950/90 text-amber-300 border border-amber-500/40"
+              }`}
+            >
+              {isApproved ? "✓ Approved" : isRejected ? "✕ Rejected" : "⏳ Pending"}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-0.5 p-2.5 text-[11px]">
+          <p className="text-neutral-400">{platform?.label ?? `${asset.platform} / ${asset.format}`}</p>
+          {asset.headline && <p className="font-medium text-neutral-200 line-clamp-1">{asset.headline}</p>}
+          {asset.cta && <p className="text-neutral-400">{asset.cta}</p>}
+        </div>
+      </Link>
+
+      {/* Approval & Action Bar */}
+      <div className="flex items-center justify-between border-t border-neutral-800/80 bg-neutral-950/60 px-2.5 py-1.5 text-[10px]">
+        <div className="flex items-center gap-1">
+          {!isApproved && (
+            <button
+              onClick={(e) => updateApproval("APPROVED", e)}
+              disabled={updating}
+              className="rounded bg-emerald-600/80 px-1.5 py-0.5 font-medium text-white hover:bg-emerald-500"
+            >
+              Approve
+            </button>
+          )}
+          {!isRejected && (
+            <button
+              onClick={(e) => updateApproval("REJECTED", e)}
+              disabled={updating}
+              className="rounded border border-neutral-700 px-1.5 py-0.5 font-medium text-rose-400 hover:bg-rose-950/40"
+            >
+              Reject
+            </button>
+          )}
+        </div>
+
+        {asset.imageUrl && (
+          isApproved ? (
+            <Link
+              href={`/animate?image=${encodeURIComponent(asset.imageUrl)}&sourceType=asset&sourceId=${asset.id}${
+                asset.brandId ? `&brandId=${asset.brandId}` : ""
+              }`}
+              className="font-medium text-amber-400 hover:text-amber-300"
+            >
+              Animate →
+            </Link>
+          ) : (
+            <span
+              title="Approve this image first to unlock video animation"
+              className="inline-flex items-center gap-0.5 text-neutral-500"
+            >
+              <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Gated
+            </span>
+          )
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 

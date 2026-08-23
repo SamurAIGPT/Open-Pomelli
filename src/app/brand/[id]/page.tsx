@@ -4,6 +4,8 @@ import Link from "next/link";
 import { DnaEditor, type EditableDNA } from "./editor";
 import { CAMPAIGN_GOALS } from "@/lib/campaign-generator";
 
+import { daysUntil } from "@/lib/calendar";
+
 function parseList(s: string | null): string[] {
   if (!s) return [];
   try {
@@ -16,12 +18,30 @@ function parseList(s: string | null): string[] {
 
 export default async function BrandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [dna, campaigns] = await Promise.all([
+  const [dna, campaigns, opportunities, pendingAssetsCount, recentActivity, products] = await Promise.all([
     prisma.brandDNA.findUnique({ where: { id } }),
     prisma.campaign.findMany({
       where: { brandId: id },
       orderBy: { createdAt: "desc" },
       take: 10,
+    }),
+    prisma.opportunity.findMany({
+      where: { brandId: id, status: "new" },
+      orderBy: { eventDate: "asc" },
+      take: 3,
+    }),
+    prisma.asset.count({
+      where: { campaign: { brandId: id }, approval: "PENDING" },
+    }),
+    prisma.activityLog.findMany({
+      where: { brandId: id },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+    }),
+    prisma.product.findMany({
+      where: { brandId: id },
+      orderBy: { createdAt: "desc" },
+      take: 3,
     }),
   ]);
   if (!dna) notFound();
@@ -47,8 +67,175 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <DnaEditor id={dna.id} sourceUrl={dna.url} initial={initial} />
+
+      {pendingAssetsCount > 0 && (
+        <section className="mx-auto mb-6 max-w-4xl px-6">
+          <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-950/30 p-4 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse" />
+              <div>
+                <p className="text-sm font-semibold text-amber-200">
+                  {pendingAssetsCount} Creative{pendingAssetsCount === 1 ? "" : "s"} Pending Human Review
+                </p>
+                <p className="text-xs text-neutral-400">
+                  Review and sign off on assets before publishing or unlocking video generation.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/brand/${dna.id}/approvals`}
+              className="rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-amber-400 transition"
+            >
+              Open Queue →
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Upcoming Opportunities Widget */}
+      <section className="mx-auto mb-8 max-w-4xl px-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-300">
+            Upcoming Opportunities
+          </h2>
+          <Link
+            href={`/brand/${dna.id}/opportunities`}
+            className="text-xs text-neutral-400 hover:text-white transition"
+          >
+            View Calendar & All Opportunities ({opportunities.length > 0 ? `${opportunities.length} upcoming` : "Scan"}) →
+          </Link>
+        </div>
+
+        {opportunities.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {opportunities.map((opp) => {
+              const days = daysUntil(opp.eventDate);
+              return (
+                <Link
+                  key={opp.id}
+                  href={`/brand/${dna.id}/opportunities`}
+                  className="group flex flex-col justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 transition hover:border-neutral-700 hover:bg-neutral-900/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 text-[10px]">
+                      <span className="font-semibold uppercase tracking-wider text-amber-400">
+                        {opp.category}
+                      </span>
+                      <span className="text-neutral-400">
+                        {days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days}d`}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-sm font-semibold text-white group-hover:text-amber-300 transition">
+                      {opp.eventName}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-400">
+                      {opp.angle}
+                    </p>
+                  </div>
+                  <div className="mt-3 text-[11px] font-medium text-neutral-500 group-hover:text-neutral-300">
+                    Review opportunity →
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-400">
+            <span>Scan the next 90 days against your Brand DNA to discover seasonal and holiday campaign moments.</span>
+            <Link
+              href={`/brand/${dna.id}/opportunities`}
+              className="ml-4 shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 font-medium text-white hover:bg-neutral-700 transition"
+            >
+              Scan Calendar
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* Product Catalog Widget */}
+      <section className="mx-auto mb-8 max-w-4xl px-6">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-300">
+              Product Catalog & Verified Claims
+            </h2>
+            <span className="rounded bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-400">
+              Fidelity Locked
+            </span>
+          </div>
+          <Link
+            href={`/brand/${dna.id}/products`}
+            className="text-xs text-neutral-400 hover:text-white transition"
+          >
+            Manage Catalog ({products.length} registered) →
+          </Link>
+        </div>
+
+        {products.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {products.map((prod) => {
+              let claimsList: string[] = [];
+              try {
+                const parsed = JSON.parse(prod.claims);
+                if (Array.isArray(parsed)) claimsList = parsed;
+              } catch {}
+
+              return (
+                <Link
+                  key={prod.id}
+                  href={`/brand/${dna.id}/products`}
+                  className="group flex flex-col justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 transition hover:border-neutral-700 hover:bg-neutral-900/50"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 text-[10px]">
+                      <span className="font-mono text-emerald-400 font-medium">
+                        {prod.currency} {prod.price.toFixed(2)}
+                      </span>
+                      {prod.fidelityLock && (
+                        <span className="text-emerald-300">🔒 Locked</span>
+                      )}
+                    </div>
+                    <h3 className="mt-2 text-sm font-semibold text-white group-hover:text-indigo-300 transition line-clamp-1">
+                      {prod.name}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-400">
+                      {prod.description}
+                    </p>
+                    {claimsList.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1">
+                        {claimsList.slice(0, 2).map((c, i) => (
+                          <span
+                            key={i}
+                            className="rounded bg-emerald-950/60 border border-emerald-800/40 px-1.5 py-0.2 text-[10px] text-emerald-300 line-clamp-1"
+                          >
+                            ✓ {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3 text-[11px] font-medium text-neutral-500 group-hover:text-neutral-300">
+                    View product facts →
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-400">
+            <span>Register official products and factual claims to enforce anti-hallucination fidelity across AI campaigns.</span>
+            <Link
+              href={`/brand/${dna.id}/products`}
+              className="ml-4 shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 font-medium text-white hover:bg-neutral-700 transition"
+            >
+              + Add Product
+            </Link>
+          </div>
+        )}
+      </section>
+
       {campaigns.length > 0 && (
-        <section className="mx-auto mb-12 max-w-4xl px-6">
+        <section className="mx-auto mb-10 max-w-4xl px-6">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-neutral-300">
             Past campaigns
           </h2>
@@ -77,6 +264,43 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
           </ul>
         </section>
       )}
+
+      {/* Recent Activity Trail */}
+      <section className="mx-auto mb-16 max-w-4xl px-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-300">
+            Recent Activity & Audit Trail
+          </h2>
+          <Link
+            href={`/brand/${dna.id}/activity`}
+            className="text-xs text-neutral-400 hover:text-white transition"
+          >
+            View Full Activity Log →
+          </Link>
+        </div>
+
+        {recentActivity.length > 0 ? (
+          <ul className="divide-y divide-neutral-900 rounded-xl border border-neutral-800 bg-neutral-950">
+            {recentActivity.map((log) => (
+              <li key={log.id} className="flex items-center justify-between px-4 py-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-neutral-500 font-mono text-[10px] uppercase">
+                    [{log.category}]
+                  </span>
+                  <span className="font-medium text-neutral-200">{log.detail}</span>
+                </div>
+                <span className="text-[11px] text-neutral-500 shrink-0 ml-4">
+                  {new Date(log.createdAt).toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-400">
+            No activity logged yet. Operations and gate events will appear here automatically.
+          </div>
+        )}
+      </section>
     </>
   );
 }
