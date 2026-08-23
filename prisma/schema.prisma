@@ -79,6 +79,7 @@ model Photoshoot {
   imageUrl        String?
   aspect          String    @default("1:1")
   resolution      String    @default("2k")
+  approval        String    @default("PENDING")
   createdAt       DateTime  @default(now())
 }
 
@@ -93,6 +94,7 @@ model Animation {
   videoUrl       String?
   duration       Int       @default(5)
   resolution     String    @default("720p")
+  approval       String    @default("PENDING")
   createdAt      DateTime  @default(now())
 }
 
@@ -108,5 +110,6 @@ model Asset {
   body       String?
   cta        String?
   variants   String?
+  approval   String   @default("PENDING")
   createdAt  DateTime @default(now())
 }

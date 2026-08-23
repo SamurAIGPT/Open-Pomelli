@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateAnimation } from "@/lib/animate";
+import { requireApprovedSourceImage, GatePreconditionError } from "@/lib/approvals";
 
 const Body = z.object({
   sourceImageUrl: z.string().url(),
@@ -20,6 +21,29 @@ export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
 
+  // Precondition Gate Check: Image must be APPROVED
+  try {
+    await requireApprovedSourceImage(
+      parsed.data.sourceType,
+      parsed.data.sourceId,
+      parsed.data.sourceImageUrl
+    );
+  } catch (gateErr) {
+    if (gateErr instanceof GatePreconditionError) {
+      return NextResponse.json(
+        {
+          error: "GATE_PRECONDITION_FAILED",
+          message: gateErr.message,
+          sourceType: gateErr.sourceType,
+          sourceId: gateErr.sourceId,
+          currentApproval: gateErr.currentApproval,
+        },
+        { status: 422 }
+      );
+    }
+    return NextResponse.json({ error: String(gateErr) }, { status: 400 });
+  }
+
   const row = await prisma.animation.create({
     data: {
       sourceImageUrl: parsed.data.sourceImageUrl,
@@ -29,6 +53,7 @@ export async function POST(req: NextRequest) {
       duration: parsed.data.duration ?? 5,
       resolution: parsed.data.resolution ?? "720p",
       brandId: parsed.data.brandId ?? null,
+      approval: "PENDING",
     },
   });
 

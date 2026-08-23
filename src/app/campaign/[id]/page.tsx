@@ -44,6 +44,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       headline: a.headline,
       body: a.body,
       cta: a.cta,
+      approval: a.approval || "PENDING",
+      brandId: campaign.brand.id,
     });
   }
 

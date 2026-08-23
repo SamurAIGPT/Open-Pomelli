@@ -57,10 +57,38 @@ export function Animator({
     }
   }
 
+  const [gateBlocked, setGateBlocked] = useState<boolean>(false);
+  const [approvingSource, setApprovingSource] = useState<boolean>(false);
+
+  async function approveSourceAndRetry() {
+    if (!initialSourceId || !initialSourceType) return;
+    setApprovingSource(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/approval", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: initialSourceType,
+          id: initialSourceId,
+          approval: "APPROVED",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to approve source image");
+      setGateBlocked(false);
+      await generate();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setApprovingSource(false);
+    }
+  }
+
   async function generate() {
     if (!imageUrl || generating) return;
     setGenerating(true);
     setError(null);
+    setGateBlocked(false);
     const tempId = `tmp-${Date.now()}`;
     setAnims((a) => [
       {
@@ -90,7 +118,13 @@ export function Animator({
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ? JSON.stringify(json.error) : `HTTP ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 422 && json.error === "GATE_PRECONDITION_FAILED") {
+          setGateBlocked(true);
+          throw new Error(json.message || "Video generation is locked until a human approves the source image.");
+        }
+        throw new Error(json.error ? JSON.stringify(json.error) : `HTTP ${res.status}`);
+      }
       setAnims((a) =>
         a.map((x) =>
           x.id === tempId
@@ -108,7 +142,7 @@ export function Animator({
         ),
       );
     } catch (e) {
-      setAnims((a) => a.map((x) => (x.id === tempId ? { ...x, status: "error", error: String(e) } : x)));
+      setAnims((a) => a.filter((x) => x.id !== tempId));
       setError(String(e));
     } finally {
       setGenerating(false);
@@ -224,8 +258,30 @@ export function Animator({
           </div>
 
           {error && (
-            <div className="rounded border border-red-900 bg-red-950/50 p-2 text-xs text-red-300">
-              {error}
+            <div className="rounded-lg border border-red-900 bg-red-950/50 p-3 text-xs text-red-300">
+              <p className="font-semibold text-red-200">
+                {gateBlocked ? "🛑 Human Approval Gate Encountered" : "Error"}
+              </p>
+              <p className="mt-1">{error}</p>
+              {gateBlocked && initialSourceId && (
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    onClick={approveSourceAndRetry}
+                    disabled={approvingSource || generating}
+                    className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {approvingSource ? "Approving…" : "Approve Source Image & Generate Video"}
+                  </button>
+                  {initialBrandId && (
+                    <Link
+                      href={`/brand/${initialBrandId}/approvals`}
+                      className="text-xs text-neutral-400 hover:text-white underline"
+                    >
+                      Open Approval Queue →
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -235,7 +291,7 @@ export function Animator({
               disabled={!imageUrl || generating || !prompt.trim()}
               className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50"
             >
-              {generating ? "Rendering…" : "Animate"}
+              {generating ? "Rendering…" : "Animate Video"}
             </button>
           </div>
         </div>

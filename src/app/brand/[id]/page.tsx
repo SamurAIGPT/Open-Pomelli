@@ -18,7 +18,7 @@ function parseList(s: string | null): string[] {
 
 export default async function BrandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [dna, campaigns, opportunities] = await Promise.all([
+  const [dna, campaigns, opportunities, pendingAssetsCount] = await Promise.all([
     prisma.brandDNA.findUnique({ where: { id } }),
     prisma.campaign.findMany({
       where: { brandId: id },
@@ -29,6 +29,9 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
       where: { brandId: id, status: "new" },
       orderBy: { eventDate: "asc" },
       take: 3,
+    }),
+    prisma.asset.count({
+      where: { campaign: { brandId: id }, approval: "PENDING" },
     }),
   ]);
   if (!dna) notFound();
@@ -54,6 +57,30 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <DnaEditor id={dna.id} sourceUrl={dna.url} initial={initial} />
+
+      {pendingAssetsCount > 0 && (
+        <section className="mx-auto mb-6 max-w-4xl px-6">
+          <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-950/30 p-4 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse" />
+              <div>
+                <p className="text-sm font-semibold text-amber-200">
+                  {pendingAssetsCount} Creative{pendingAssetsCount === 1 ? "" : "s"} Pending Human Review
+                </p>
+                <p className="text-xs text-neutral-400">
+                  Review and sign off on assets before publishing or unlocking video generation.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/brand/${dna.id}/approvals`}
+              className="rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-amber-400 transition"
+            >
+              Open Queue →
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Upcoming Opportunities Widget */}
       <section className="mx-auto mb-8 max-w-4xl px-6">
