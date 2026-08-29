@@ -27,6 +27,17 @@ async function submit(endpoint: string, body: Record<string, unknown>): Promise<
 
 type PollResponse = Record<string, unknown> & { status?: string };
 
+function hasOutput(response: PollResponse): boolean {
+  for (const field of ["result", "text", "output", "url", "image_url", "video_url", "output_url"]) {
+    if (typeof response[field] === "string" && response[field].trim()) return true;
+  }
+  for (const field of ["images", "outputs"]) {
+    const values = response[field];
+    if (Array.isArray(values) && values.some((value) => typeof value === "string" && value.trim())) return true;
+  }
+  return false;
+}
+
 async function poll(
   requestId: string,
   opts: { intervalMs?: number; timeoutMs?: number } = {},
@@ -51,15 +62,18 @@ async function poll(
     const json = (await res.json()) as PollResponse;
     const status = (json.status ?? "").toLowerCase();
 
-    if (status === "processing" || status === "pending") {
+    if (status === "queued" || status === "processing" || status === "pending") {
       await new Promise((r) => setTimeout(r, intervalMs));
       continue;
     }
     if (status === "failed" || status === "cancelled") {
       throw new Error(`MuAPI ${requestId} ${status}: ${JSON.stringify(json)}`);
     }
-    // No status (or status === "completed"): output_data returned directly
-    return json;
+    if (status === "completed" || status === "") {
+      if (!hasOutput(json)) throw new Error(`MuAPI ${requestId} completed without a valid output: ${JSON.stringify(json)}`);
+      return json;
+    }
+    throw new Error(`MuAPI ${requestId} unknown status: ${JSON.stringify(json)}`);
   }
   throw new Error(`MuAPI ${requestId} timed out after ${timeoutMs}ms`);
 }
