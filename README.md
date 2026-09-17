@@ -8,6 +8,8 @@ All AI calls (text, vision, image, image-edit, video) route through a single pro
 
 - [MuAPI image-generation playground](https://muapi.ai/playground/gpt-image-2-text-to-image?utm_source=github&utm_medium=readme&utm_campaign=open-pomelli) — run the text-to-image and brand-creative workflows behind this app
 - [MuAPI video-generation docs](https://muapi.ai/docs/video-generation?utm_source=github&utm_medium=readme&utm_campaign=open-pomelli) — build the short-form video side of the campaign pipeline
+- [awesome-vibecoded-saas](https://github.com/Anil-matcha/awesome-vibecoded-saas) — broader catalog of open-source SaaS alternatives featuring Open-Pomelli.
+- [Muapi open-source alternatives](https://muapi.ai/open-source/alternative) — see the broader comparison directory and the roadmap around this campaign workflow.
 - [Open-Poe-AI](https://github.com/Anil-matcha/Open-Poe-AI) — Open-source Poe alternative — chat with GPT, Claude, Gemini from one interface
 - [open-character-ai](https://github.com/Anil-matcha/open-character-ai) — Open-source Character.AI alternative with custom AI personas
 
