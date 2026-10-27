@@ -78,10 +78,16 @@ function SceneVisual({ scene, durationInFrames }) {
   const media =
     BACKGROUND_MEDIA.find((m) => m.id === scene.visualId) || BACKGROUND_MEDIA[0];
 
-  const videoUrl =
-    !media?.url || media.url.includes("mixkit")
-      ? "/videos/clip-1.mp4"
-      : media.url;
+  const customVideo = scene.videoUrl || scene.mediaUrl;
+  const isCustomImage = !!scene.imageUrl && !customVideo;
+
+  const videoUrl = customVideo
+    ? customVideo
+    : !media?.url || media.url.includes("mixkit")
+    ? "/videos/clip-1.mp4"
+    : media.url;
+
+  const posterUrl = scene.imageUrl || media?.poster;
 
   // Smooth Ken Burns zoom
   const scale = interpolate(frame, [0, durationInFrames], [1.02, 1.14], {
@@ -95,22 +101,24 @@ function SceneVisual({ scene, durationInFrames }) {
         className="w-full h-full transform transition-transform duration-75 origin-center relative"
         style={{ transform: `scale(${scale})` }}
       >
-        {media?.poster && (
+        {posterUrl && (
           <img
-            src={media.poster}
-            alt={media.title}
+            src={posterUrl}
+            alt={media?.title || "Visual"}
             className="absolute inset-0 w-full h-full object-cover"
           />
         )}
-        <Video
-          src={videoUrl}
-          className="w-full h-full object-cover relative z-10"
-          muted
-          loop
-          onError={(err) => {
-            console.warn("Scene video recovered:", err);
-          }}
-        />
+        {!isCustomImage && (
+          <Video
+            src={videoUrl}
+            className="w-full h-full object-cover relative z-10"
+            muted
+            loop
+            onError={(err) => {
+              console.warn("Scene video recovered:", err);
+            }}
+          />
+        )}
       </div>
 
       {/* Cinematic dark gradients for text contrast */}

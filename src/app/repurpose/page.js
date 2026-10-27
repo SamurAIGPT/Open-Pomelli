@@ -152,7 +152,7 @@ export default function RepurposePage() {
               scenes: data.scenes,
             })
           );
-          router.push(`/studio?remix=active&projectId=${newProjectId}`);
+          router.push(`/editor/new?remix=active&projectId=${newProjectId}`);
           return;
         }
       }
@@ -162,8 +162,8 @@ export default function RepurposePage() {
       setRemixingId(null);
     }
 
-    // Fallback to loading the video directly into studio
-    router.push(`/studio?template=${video.id}`);
+    // Fallback to loading the video directly into editor
+    router.push(`/editor/new?template=${video.id}`);
   };
 
   // Open Create Modal
@@ -203,7 +203,7 @@ export default function RepurposePage() {
         setActiveNav={(nav) => {
           if (nav === "home") router.push("/");
           else if (nav === "search" || nav === "viral-search") router.push("/search");
-          else if (nav === "videos") router.push("/studio");
+          else if (nav === "videos") router.push("/editor/new");
         }}
         onOpenCreate={() => handleOpenCreate({})}
         userCredits={-10}
@@ -743,7 +743,7 @@ export default function RepurposePage() {
         initialData={createInitialData}
         onGenerate={(prompt, duration) => {
           router.push(
-            `/studio?prompt=${encodeURIComponent(prompt)}&duration=${duration}`,
+            `/editor/new?prompt=${encodeURIComponent(prompt)}&duration=${duration}`,
           );
         }}
       />

@@ -214,7 +214,7 @@ export default function RevidSearchPage() {
         if (typeof window !== "undefined") {
           sessionStorage.setItem("revid_pending_remix", JSON.stringify(data.script));
         }
-        router.push("/studio?remix=active");
+        router.push("/editor/new?remix=active");
       } else {
         alert(`Failed to remix video: ${data.error || "MuAPI generation issue"}`);
       }
@@ -262,7 +262,7 @@ export default function RevidSearchPage() {
         setActiveNav={(nav) => {
           if (nav === "home") router.push("/");
           else if (nav === "repurpose") router.push("/repurpose");
-          else if (nav === "videos") router.push("/studio");
+          else if (nav === "videos") router.push("/editor/new");
         }}
         onOpenCreate={() => setIsCreateOpen(true)}
         userCredits={-10}
@@ -827,7 +827,7 @@ export default function RevidSearchPage() {
         initialData={{ prompt: searchQuery }}
         onSubmit={async (prompt, duration) => {
           setIsCreateOpen(false);
-          router.push(`/studio?prompt=${encodeURIComponent(prompt)}&duration=${duration}`);
+          router.push(`/editor/new?prompt=${encodeURIComponent(prompt)}&duration=${duration}`);
         }}
       />
     </div>

@@ -76,7 +76,7 @@ export function HomeFeed({ onOpenCreate, onRemixVideo, onNavigateRepurpose }) {
         if (typeof window !== "undefined") {
           sessionStorage.setItem("revid_pending_remix", JSON.stringify(data.script));
         }
-        router.push("/studio?remix=active");
+        router.push("/editor/new?remix=active");
       } else {
         alert(`Failed to remix video: ${data.error || "Unknown error"}`);
       }

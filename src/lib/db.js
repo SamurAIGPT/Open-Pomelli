@@ -191,6 +191,18 @@ export const DBService = {
     }
   },
 
+  async getProjectById(id) {
+    if (!id) return null;
+    try {
+      return await prisma.videoProject.findUnique({
+        where: { id },
+      });
+    } catch (err) {
+      console.error("[PRISMA] getProjectById error:", err.message);
+      return null;
+    }
+  },
+
   async saveProject(project, userId = null) {
     if (!project || !project.id) return null;
 

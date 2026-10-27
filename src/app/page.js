@@ -20,13 +20,13 @@ export default function RevidHomePage() {
 
   // Remix Video Action from the Home Feed
   const handleRemixVideo = (videoCard) => {
-    router.push(`/studio?template=${videoCard.id}`);
+    router.push(`/editor/new?template=${videoCard.id}`);
   };
 
   // Handle generation submission from the Create Modal
   const handleGenerateFromModal = async (prompt, duration) => {
-    // Navigate to studio with the prompt query
-    router.push(`/studio?prompt=${encodeURIComponent(prompt)}&duration=${duration}`);
+    // Navigate to editor with the prompt query
+    router.push(`/editor/new?prompt=${encodeURIComponent(prompt)}&duration=${duration}`);
   };
 
   return (
@@ -41,7 +41,7 @@ export default function RevidHomePage() {
           } else if (nav === "search" || nav === "viral-search") {
             router.push("/search");
           } else if (nav === "videos") {
-            router.push("/studio");
+            router.push("/editor/new");
           }
         }}
         onOpenCreate={() => handleOpenCreate({})}
