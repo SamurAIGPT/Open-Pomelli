@@ -229,3 +229,63 @@ export async function POST(req) {
     );
   }
 }
+
+export async function GET(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("q") || "viral";
+    const platformParam = searchParams.get("platform") || "youtube";
+    const platforms = platformParam.split(",").map((p) => p.trim());
+    const count = Number(searchParams.get("count") || 12);
+    const min_likes = Number(searchParams.get("min_likes") || 0);
+    const max_duration = Number(searchParams.get("max_duration") || 0);
+
+    let realVideos = [];
+    const errors = [];
+
+    // Query live YouTube API
+    if (platforms.includes("youtube")) {
+      const ytResult = await fetchRealYouTubeVideos(query, count, min_likes, max_duration);
+      if (ytResult.videos && ytResult.videos.length > 0) {
+        realVideos.push(...ytResult.videos);
+      }
+      if (ytResult.error) {
+        errors.push({ platform: "youtube", error: ytResult.error });
+      }
+    }
+
+    // Query live MuAPI for TikTok / Instagram
+    for (const plat of ["tiktok", "instagram"]) {
+      if (platforms.includes(plat)) {
+        const muResult = await fetchRealMuApiPosts(plat, query, count);
+        if (muResult.videos && muResult.videos.length > 0) {
+          realVideos.push(...muResult.videos);
+        }
+        if (muResult.error) {
+          errors.push({ platform: plat, error: muResult.error });
+        }
+      }
+    }
+
+    if (min_likes > 0) {
+      realVideos = realVideos.filter((v) => v.likes >= min_likes);
+    }
+    if (max_duration > 0) {
+      realVideos = realVideos.filter((v) => v.duration <= max_duration);
+    }
+
+    return NextResponse.json({
+      success: true,
+      videos: realVideos,
+      total: realVideos.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (err) {
+    console.error("GET /api/repurpose/videos error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to fetch live videos" },
+      { status: 500 }
+    );
+  }
+}
+
