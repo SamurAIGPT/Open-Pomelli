@@ -21,6 +21,7 @@ import {
   Check,
   ChevronDown,
 } from "lucide-react";
+import { saveProject } from "@/lib/supabase";
 
 export default function RepurposePage() {
   const router = useRouter();
@@ -136,14 +137,22 @@ export default function RepurposePage() {
       if (res.ok) {
         const data = await res.json();
         if (data.scenes && data.scenes.length > 0) {
-          localStorage.setItem(
-            "revid_active_remix",
+          const newProjectId = `proj_remix_${Date.now()}`;
+          await saveProject({
+            id: newProjectId,
+            title: data.title || video.title || "Remixed Video",
+            scenes: data.scenes,
+            aspect_ratio: "9:16",
+            duration_seconds: 30,
+          });
+          sessionStorage.setItem(
+            "revid_pending_remix",
             JSON.stringify({
               title: data.title || video.title,
               scenes: data.scenes,
-            }),
+            })
           );
-          router.push("/studio?remix=active");
+          router.push(`/studio?remix=active&projectId=${newProjectId}`);
           return;
         }
       }

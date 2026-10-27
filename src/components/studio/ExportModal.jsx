@@ -14,13 +14,14 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { BACKGROUND_MEDIA } from "@/lib/constants";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 export function ExportModal({
   isOpen,
   onClose,
   project,
 }) {
+  const { deductCredits, isAuthenticated } = useAuth();
   const [isRendering, setIsRendering] = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
   const [renderComplete, setRenderComplete] = useState(false);
@@ -44,7 +45,17 @@ Save this video for later & follow for daily insights 🚀
 
 #viral #trending #reels #shorts #tiktok #fyp #contentcreator #motivation #mindset`;
 
-  const handleStartRender = () => {
+  const handleStartRender = async () => {
+    // Deduct 10 credits if authenticated
+    if (isAuthenticated) {
+      try {
+        await deductCredits(10, "1080p Video Render & Export");
+      } catch (creditErr) {
+        alert(creditErr.message || "Insufficient credits to render video. Please top up.");
+        return;
+      }
+    }
+
     setIsRendering(true);
     setRenderProgress(0);
     setRenderComplete(false);
@@ -68,19 +79,21 @@ Save this video for later & follow for daily insights 🚀
           });
         } catch {}
 
-        // Save to Supabase if connected
-        if (supabase) {
-          supabase
-            .from("video_renders")
-            .insert({
-              project_id: project.id,
-              status: "completed",
-              duration_seconds: totalDuration,
-              video_url: BACKGROUND_MEDIA[0]?.url || "",
-            })
-            .then(() => setIsSavedToSupabase(true))
-            .catch((err) => console.warn("Supabase render log error:", err));
-        }
+        // Save render record to PostgreSQL database table via API
+        fetch("/api/renders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: project.id,
+            durationSeconds: totalDuration,
+            videoUrl: BACKGROUND_MEDIA[0]?.url || "",
+          }),
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.success) setIsSavedToSupabase(true);
+          })
+          .catch((err) => console.warn("Render log error:", err));
       } else {
         setRenderProgress(progress);
       }

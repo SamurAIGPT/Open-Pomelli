@@ -10,10 +10,12 @@ import { TemplatesModal } from "@/components/studio/TemplatesModal";
 import { ExportModal } from "@/components/studio/ExportModal";
 import { VIRAL_REMIX_CARDS, MUSIC_TRACKS } from "@/lib/constants";
 import { saveProject, getProjects, supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { deductCredits, isAuthenticated } = useAuth();
   const templateId = searchParams.get("template");
 
   // Initial template selection
@@ -74,7 +76,7 @@ function StudioContent() {
     }
   }, [searchParams]);
 
-  // Save changes to Supabase & localStorage (debounced)
+  // Save changes to Supabase PostgreSQL database (debounced)
   useEffect(() => {
     const timeout = setTimeout(async () => {
       setIsSaving(true);
@@ -96,6 +98,15 @@ function StudioContent() {
 
   // Handle AI Script Generation
   const handleGenerateAiScript = async (prompt, targetDuration = 30) => {
+    if (isAuthenticated) {
+      try {
+        await deductCredits(5, "AI Script Generation");
+      } catch (err) {
+        alert(err.message || "Insufficient credits. Please recharge your account.");
+        return;
+      }
+    }
+
     setIsGenerating(true);
     setGenerationStep("Drafting viral script...");
 

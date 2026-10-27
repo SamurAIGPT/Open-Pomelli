@@ -1,104 +1,56 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://kzemjiijodshsryvhsmj.supabase.co";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-export const supabase = supabaseUrl && supabaseAnonKey && !supabaseAnonKey.includes("placeholder")
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+export const supabase =
+  supabaseUrl && supabaseAnonKey && !supabaseAnonKey.includes("placeholder")
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
-const STORAGE_KEY = "revid_ai_projects_v2";
-
-// Helper to get all projects (from Supabase if configured, otherwise localStorage)
+// Helper to get all projects from Supabase PostgreSQL database via API
 export async function getProjects() {
-  if (typeof window === "undefined") return [];
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from("video_projects")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data;
-      }
-    } catch (err) {
-      console.warn("Supabase fetch error, falling back to local storage:", err);
-    }
-  }
-
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
+    const res = await fetch("/api/projects", { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to fetch projects");
+    const data = await res.json();
+    return data.projects || [];
+  } catch (err) {
+    console.error("[DB] Error fetching projects:", err.message);
     return [];
   }
 }
 
-// Helper to save or update a project
+// Helper to save or update a project into PostgreSQL video_projects table
 export async function saveProject(project) {
-  if (typeof window === "undefined") return project;
+  if (!project) return null;
 
-  const projectToSave = {
-    ...project,
-    updated_at: new Date().toISOString(),
-    created_at: project.created_at || new Date().toISOString(),
-  };
-
-  // Always update local storage for instant offline capability
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const existing = raw ? JSON.parse(raw) : [];
-    const index = existing.findIndex((p) => p.id === projectToSave.id);
-    let updated;
-    if (index >= 0) {
-      updated = [...existing];
-      updated[index] = projectToSave;
-    } else {
-      updated = [projectToSave, ...existing];
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(project),
+    });
+    if (!res.ok) throw new Error("Failed to save project");
+    const data = await res.json();
+    return data.project || project;
   } catch (err) {
-    console.error("Local storage error:", err);
+    console.error("[DB] Error saving project:", err.message);
+    return project;
   }
-
-  // Sync to Supabase if connected
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from("video_projects")
-        .upsert(projectToSave)
-        .select()
-        .single();
-      if (!error && data) return data;
-    } catch (err) {
-      console.warn("Supabase upsert error, local copy saved:", err);
-    }
-  }
-
-  return projectToSave;
 }
 
-// Helper to delete project
+// Helper to delete project from PostgreSQL video_projects table
 export async function deleteProject(id) {
-  if (typeof window === "undefined") return;
+  if (!id) return false;
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const existing = JSON.parse(raw);
-      const filtered = existing.filter((p) => p.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    }
+    const res = await fetch(`/api/projects?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    return res.ok;
   } catch (err) {
-    console.error("Local storage delete error:", err);
-  }
-
-  if (supabase) {
-    try {
-      await supabase.from("video_projects").delete().eq("id", id);
-    } catch (err) {
-      console.warn("Supabase delete error:", err);
-    }
+    console.error("[DB] Error deleting project:", err.message);
+    return false;
   }
 }

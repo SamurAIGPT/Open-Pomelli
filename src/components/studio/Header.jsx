@@ -12,6 +12,7 @@ import {
   Database,
   CheckCircle2,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export function Header({
   projectTitle,
@@ -26,6 +27,8 @@ export function Header({
   isSupabaseConnected,
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const { credits, setIsTopUpOpen, isAuthenticated, setIsLoginModalOpen } = useAuth();
+
 
   return (
     <header className="h-16 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-4 lg:px-6 flex items-center justify-between z-30 sticky top-0">
@@ -155,8 +158,17 @@ export function Header({
         </button>
 
         <button
+          onClick={() => (isAuthenticated ? setIsTopUpOpen(true) : setIsLoginModalOpen(true))}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-amber-300 border border-amber-500/30 transition shadow-xs cursor-pointer"
+          title="Your AI Credits - Click to top up"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span>{credits.toLocaleString()} credits</span>
+        </button>
+
+        <button
           onClick={onOpenExport}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-yellow-400 via-amber-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black shadow-lg shadow-yellow-400/20 transition transform active:scale-95"
+          className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-yellow-400 via-amber-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black shadow-lg shadow-yellow-400/20 transition transform active:scale-95 cursor-pointer"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Export</span>

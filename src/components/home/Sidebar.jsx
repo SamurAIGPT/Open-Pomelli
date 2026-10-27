@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Home,
   Send,
@@ -20,13 +20,15 @@ import {
   Plus,
   PanelLeftClose,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export function Sidebar({
   activeNav = "home",
   setActiveNav,
   onOpenCreate,
-  userCredits = -10,
 }) {
+  const { user, credits, isAuthenticated, setIsLoginModalOpen, setIsTopUpOpen, logout } = useAuth();
+  const [profileDropdown, setProfileDropdown] = useState(false);
   return (
     <aside className="w-60 h-screen bg-[#fcfcfc] border-r border-[#ececec] flex flex-col justify-between p-3 select-none flex-shrink-0 z-30 font-sans text-[13px]">
       {/* Top Header & Logo */}
@@ -202,36 +204,93 @@ export function Sidebar({
       </div>
 
       {/* Bottom Profile & Upgrade */}
-      <div className="space-y-2 px-1 pt-4 border-t border-[#ececec]">
+      <div className="space-y-2 px-1 pt-4 border-t border-[#ececec] relative">
         {/* Upgrade Button */}
-        <button className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 text-white rounded-full font-medium text-xs flex items-center justify-center gap-2 shadow-sm transition">
+        <button
+          onClick={() => setIsTopUpOpen(true)}
+          className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 text-white rounded-full font-medium text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
+        >
           <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
           <span>Upgrade now</span>
         </button>
 
         {/* User Card */}
-        <div className="p-2 rounded-2xl bg-zinc-100/70 border border-zinc-200/60 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-              <User className="w-3.5 h-3.5" />
+        {isAuthenticated ? (
+          <div
+            onClick={() => setProfileDropdown(!profileDropdown)}
+            className="p-2 rounded-2xl bg-zinc-100/70 hover:bg-zinc-100 border border-zinc-200/60 flex items-center justify-between cursor-pointer transition"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
+                {user?.image ? (
+                  <img src={user.image} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name?.[0]?.toUpperCase() || <User className="w-3.5 h-3.5" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-zinc-900 leading-tight truncate">
+                  {user?.name || "Creator"}
+                </p>
+                <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-zinc-900 leading-tight">Personal</p>
-              <p className="text-[10px] text-zinc-500 truncate">jaiprasadkowru@gm...</p>
-            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-        </div>
+        ) : (
+          <button
+            onClick={() => setIsLoginModalOpen(true)}
+            className="w-full p-2.5 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </button>
+        )}
+
+        {/* Profile Dropdown */}
+        {profileDropdown && isAuthenticated && (
+          <div className="absolute bottom-20 left-1 right-1 bg-white rounded-2xl border border-zinc-200 shadow-xl p-3 z-50 space-y-2 animate-scale-up">
+            <div className="border-b border-zinc-100 pb-2">
+              <p className="text-xs font-bold text-zinc-900 truncate">{user?.name || "Creator"}</p>
+              <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
+            </div>
+            <button
+              onClick={() => {
+                setProfileDropdown(false);
+                setIsTopUpOpen(true);
+              }}
+              className="w-full text-left px-2 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100 rounded-lg flex items-center justify-between"
+            >
+              <span>Balance:</span>
+              <span className="font-mono font-bold text-emerald-600">
+                {credits.toLocaleString()} credits
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setProfileDropdown(false);
+                logout();
+              }}
+              className="w-full text-left px-2 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        )}
 
         {/* Credits Row */}
-        <div className="flex items-center justify-between px-2 text-[11px] text-zinc-500">
+        <div
+          onClick={() => setIsTopUpOpen(true)}
+          className="flex items-center justify-between px-2 text-[11px] text-zinc-500 cursor-pointer hover:text-zinc-800 transition"
+        >
           <div className="flex items-center gap-1 text-emerald-700 font-semibold">
             <Sparkles className="w-3 h-3 text-emerald-600" />
-            <span>{userCredits} credits</span>
+            <span>{credits.toLocaleString()} credits</span>
           </div>
-          <button className="hover:text-zinc-800" title="Manage billing">
-            <ExternalLink className="w-3 h-3 text-zinc-400" />
-          </button>
+          <span className="text-[10px] text-emerald-600 font-bold hover:underline">
+            + Top Up
+          </span>
         </div>
       </div>
     </aside>

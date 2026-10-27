@@ -73,14 +73,22 @@ export default function RevidSearchPage() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // Hydrate bookmarks from localStorage
+  // Hydrate bookmarks from PostgreSQL database table
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("revid_saved_video_ids");
-      if (saved) {
-        setBookmarkedIds(new Set(JSON.parse(saved)));
+    async function loadSavedVideos() {
+      try {
+        const res = await fetch("/api/saved-videos");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.videos) {
+            setBookmarkedIds(new Set(data.videos.map((v) => String(v.videoId))));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load saved videos:", err);
       }
-    } catch {}
+    }
+    loadSavedVideos();
   }, []);
 
   const showToast = (msg) => {
@@ -88,23 +96,50 @@ export default function RevidSearchPage() {
     setTimeout(() => setToastMessage(null), 2500);
   };
 
-  const toggleBookmark = (video, e) => {
+  const toggleBookmark = async (video, e) => {
     e.stopPropagation();
     const id = String(video.id);
+    const isCurrentlySaved = bookmarkedIds.has(id);
+
     setBookmarkedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
+      if (isCurrentlySaved) {
         next.delete(id);
-        showToast("Removed from saved collection");
       } else {
         next.add(id);
-        showToast("Saved to your collection!");
       }
-      try {
-        localStorage.setItem("revid_saved_video_ids", JSON.stringify(Array.from(next)));
-      } catch {}
       return next;
     });
+
+    if (isCurrentlySaved) {
+      showToast("Removed from saved collection");
+      try {
+        await fetch(`/api/saved-videos?videoId=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+      } catch (err) {
+        console.error("Error removing saved video:", err);
+      }
+    } else {
+      showToast("Saved to your collection!");
+      try {
+        await fetch("/api/saved-videos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: video.id,
+            platform: video.platform || "youtube",
+            title: video.title || "Saved Video",
+            coverUrl: video.coverUrl || "",
+            views: video.views || 0,
+            likes: video.likes || 0,
+            videoUrl: video.videoUrl || "",
+          }),
+        });
+      } catch (err) {
+        console.error("Error saving video to database:", err);
+      }
+    }
   };
 
   // Perform Live Search via /api/repurpose/search
