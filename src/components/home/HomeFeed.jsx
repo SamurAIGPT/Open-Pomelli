@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Sparkles,
@@ -15,13 +16,86 @@ import {
   Play,
   ArrowRight,
   MessageSquare,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
-import { VIRAL_REMIX_CARDS } from "@/lib/constants";
 
 export function HomeFeed({ onOpenCreate, onRemixVideo, onNavigateRepurpose }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("viral"); // 'viral' | 'ads'
   const [bookmarked, setBookmarked] = useState({});
+  const [trendingVideos, setTrendingVideos] = useState([]);
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const [apiError, setApiError] = useState(null);
+  const [remixingId, setRemixingId] = useState(null);
+
+  const fetchTrendingVideos = async () => {
+    setLoadingVideos(true);
+    setApiError(null);
+    try {
+      const res = await fetch("/api/repurpose/videos?q=viral&platform=youtube,tiktok,instagram");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load trending videos from server");
+      }
+      setTrendingVideos(data.videos || []);
+      if (data.errors && data.errors.length > 0 && (!data.videos || data.videos.length === 0)) {
+        setApiError(data.errors.map((e) => `${e.platform}: ${e.error}`).join(" | "));
+      }
+    } catch (err) {
+      console.error("[HomeFeed] fetch error:", err);
+      setApiError(err.message || "Failed to connect to video feed API");
+      setTrendingVideos([]);
+    } finally {
+      setLoadingVideos(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrendingVideos();
+  }, []);
+
+  const handleRemixLive = async (video) => {
+    setRemixingId(video.id);
+    try {
+      const res = await fetch("/api/repurpose/remix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: video.id,
+          title: video.title,
+          description: video.title,
+          platform: video.platform || "youtube",
+          topics: ["viral"],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.script) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("revid_pending_remix", JSON.stringify(data.script));
+        }
+        router.push("/studio?remix=active");
+      } else {
+        alert(`Failed to remix video: ${data.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      alert(`Remix error: ${err.message}`);
+    } finally {
+      setRemixingId(null);
+    }
+  };
+
+  const formatViews = (val) => {
+    if (!val) return "0";
+    if (typeof val === "string" && (val.includes("M") || val.includes("K"))) return val;
+    const num = Number(val);
+    if (isNaN(num)) return val;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
+    return num.toString();
+  };
 
   const toggleBookmark = (id, e) => {
     e.stopPropagation();
@@ -325,64 +399,132 @@ export function HomeFeed({ onOpenCreate, onRemixVideo, onNavigateRepurpose }) {
             </div>
           </div>
 
-          {/* Viral Video Cards Carousel / Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {VIRAL_REMIX_CARDS.map((video) => {
-              const isSaved = bookmarked[video.id];
+          {/* Real API Status Message if error occurred */}
+          {apiError && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>API Status: {apiError}</span>
+              </div>
+              <button
+                onClick={fetchTrendingVideos}
+                className="flex items-center gap-1 font-semibold text-amber-800 hover:text-amber-950 underline ml-2"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Retry</span>
+              </button>
+            </div>
+          )}
 
-              return (
+          {/* Loading Skeleton */}
+          {loadingVideos && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((n) => (
                 <div
-                  key={video.id}
-                  onClick={() => onRemixVideo(video)}
-                  className="group relative rounded-2xl overflow-hidden aspect-[9/14] bg-zinc-900 border border-zinc-200 shadow-sm cursor-pointer transform hover:-translate-y-1 transition duration-200 flex flex-col justify-between p-3.5"
+                  key={n}
+                  className="rounded-2xl aspect-[9/14] bg-zinc-100 border border-zinc-200 animate-pulse flex flex-col justify-between p-4"
                 >
-                  {/* Background poster */}
-                  <img
-                    src={video.poster}
-                    alt={video.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
-
-                  {/* Bookmark Icon */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <button
-                      onClick={(e) => toggleBookmark(video.id, e)}
-                      className={`p-1.5 rounded-full backdrop-blur-md transition ${
-                        isSaved
-                          ? "bg-yellow-400 text-black"
-                          : "bg-black/40 text-white hover:bg-black/70"
-                      }`}
-                    >
-                      <Bookmark className="w-3.5 h-3.5 fill-current" />
-                    </button>
-
-                    <span className="text-[10px] font-mono text-white/90 bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full">
-                      {video.views} views
-                    </span>
-                  </div>
-
-                  {/* Title & Remix Action */}
-                  <div className="relative z-10 space-y-2">
-                    <h3 className="text-sm font-extrabold text-white leading-tight drop-shadow-md">
-                      {video.title}
-                    </h3>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemixVideo(video);
-                      }}
-                      className="w-full py-2 px-3 rounded-xl bg-white hover:bg-yellow-400 text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Remix this video</span>
-                    </button>
+                  <div className="h-4 w-16 bg-zinc-200 rounded-full" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-full bg-zinc-200 rounded" />
+                    <div className="h-4 w-2/3 bg-zinc-200 rounded" />
+                    <div className="h-9 w-full bg-zinc-200 rounded-xl mt-3" />
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loadingVideos && trendingVideos.length === 0 && !apiError && (
+            <div className="text-center py-12 bg-white rounded-2xl border border-zinc-200 p-6 space-y-2">
+              <p className="text-sm font-bold text-zinc-900">No trending videos found</p>
+              <p className="text-xs text-zinc-500">Live API returned no posts for current query.</p>
+              <button
+                onClick={fetchTrendingVideos}
+                className="mt-2 px-4 py-1.5 bg-zinc-950 text-white rounded-full text-xs font-semibold hover:bg-zinc-800 transition"
+              >
+                Reload Live Feed
+              </button>
+            </div>
+          )}
+
+          {/* Real Live Viral Video Cards */}
+          {!loadingVideos && trendingVideos.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {trendingVideos.slice(0, 8).map((video) => {
+                const isSaved = bookmarked[video.id];
+                const isRemixing = remixingId === video.id;
+
+                return (
+                  <div
+                    key={video.id}
+                    onClick={() => handleRemixLive(video)}
+                    className="group relative rounded-2xl overflow-hidden aspect-[9/14] bg-zinc-900 border border-zinc-200 shadow-sm cursor-pointer transform hover:-translate-y-1 transition duration-200 flex flex-col justify-between p-3.5"
+                  >
+                    {/* Background poster */}
+                    <img
+                      src={video.coverUrl}
+                      alt={video.title}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
+
+                    {/* Bookmark Icon & Platform / Views */}
+                    <div className="relative z-10 flex items-center justify-between">
+                      <button
+                        onClick={(e) => toggleBookmark(video.id, e)}
+                        className={`p-1.5 rounded-full backdrop-blur-md transition ${
+                          isSaved
+                            ? "bg-yellow-400 text-black"
+                            : "bg-black/40 text-white hover:bg-black/70"
+                        }`}
+                      >
+                        <Bookmark className="w-3.5 h-3.5 fill-current" />
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full">
+                          {video.platform || "video"}
+                        </span>
+                        <span className="text-[10px] font-mono text-white/90 bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full">
+                          {formatViews(video.views)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Title & Remix Action */}
+                    <div className="relative z-10 space-y-2">
+                      <h3 className="text-xs sm:text-sm font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                        {video.title}
+                      </h3>
+
+                      <button
+                        disabled={isRemixing}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemixLive(video);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-white hover:bg-yellow-400 text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition disabled:opacity-75"
+                      >
+                        {isRemixing ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                            <span>Remixing Script...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Remix this video</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
