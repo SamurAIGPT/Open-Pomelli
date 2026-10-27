@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { VIRAL_REMIX_CARDS } from "@/lib/constants";
 
-export function HomeFeed({ onOpenCreate, onRemixVideo }) {
+export function HomeFeed({ onOpenCreate, onRemixVideo, onNavigateRepurpose }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("viral"); // 'viral' | 'ads'
   const [bookmarked, setBookmarked] = useState({});
@@ -153,7 +153,7 @@ export function HomeFeed({ onOpenCreate, onRemixVideo }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Repurpose a video */}
           <div
-            onClick={() => onOpenCreate({ mode: "repurpose" })}
+            onClick={() => (onNavigateRepurpose ? onNavigateRepurpose() : onOpenCreate({ mode: "repurpose" }))}
             className="bg-white hover:border-emerald-300 p-4 rounded-2xl border border-zinc-200 shadow-2xs cursor-pointer transition-all duration-200 group flex flex-col justify-between h-40"
           >
             <div>

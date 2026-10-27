@@ -36,7 +36,9 @@ export default function RevidHomePage() {
         activeNav={activeNav}
         setActiveNav={(nav) => {
           setActiveNav(nav);
-          if (nav === "videos") {
+          if (nav === "repurpose") {
+            router.push("/repurpose");
+          } else if (nav === "videos") {
             router.push("/studio");
           }
         }}
@@ -48,6 +50,7 @@ export default function RevidHomePage() {
       <HomeFeed
         onOpenCreate={handleOpenCreate}
         onRemixVideo={handleRemixVideo}
+        onNavigateRepurpose={() => router.push("/repurpose")}
       />
 
       {/* Creation Modal */}
