@@ -38,6 +38,8 @@ export default function RevidHomePage() {
           setActiveNav(nav);
           if (nav === "repurpose") {
             router.push("/repurpose");
+          } else if (nav === "search" || nav === "viral-search") {
+            router.push("/search");
           } else if (nav === "videos") {
             router.push("/studio");
           }

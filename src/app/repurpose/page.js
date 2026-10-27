@@ -193,6 +193,7 @@ export default function RepurposePage() {
         activeNav="repurpose"
         setActiveNav={(nav) => {
           if (nav === "home") router.push("/");
+          else if (nav === "search" || nav === "viral-search") router.push("/search");
           else if (nav === "videos") router.push("/studio");
         }}
         onOpenCreate={() => handleOpenCreate({})}
