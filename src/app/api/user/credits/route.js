@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { DBService } from "@/lib/db";
+
+async function getEmail(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.email) return session.user.email;
+  } catch {}
+  return req?.cookies?.get("revid_user_email")?.value || null;
+}
 
 export async function GET(req) {
   try {
-    const email = req.cookies.get("revid_user_email")?.value;
+    const email = await getEmail(req);
 
     if (!email) {
       return NextResponse.json(
@@ -22,7 +32,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const email = req.cookies.get("revid_user_email")?.value;
+    const email = await getEmail(req);
 
     if (!email) {
       return NextResponse.json(

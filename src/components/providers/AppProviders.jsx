@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { SessionProvider } from "next-auth/react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { TopUpCreditsModal } from "@/components/auth/TopUpCreditsModal";
@@ -24,9 +25,11 @@ function GlobalModals() {
 
 export function AppProviders({ children }) {
   return (
-    <AuthProvider>
-      {children}
-      <GlobalModals />
-    </AuthProvider>
+    <SessionProvider>
+      <AuthProvider>
+        {children}
+        <GlobalModals />
+      </AuthProvider>
+    </SessionProvider>
   );
 }

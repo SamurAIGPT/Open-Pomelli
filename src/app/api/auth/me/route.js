@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { DBService } from "@/lib/db";
 
 export async function GET(req) {
   try {
-    const email = req.cookies.get("revid_user_email")?.value;
+    let email = null;
+
+    try {
+      const session = await getServerSession(authOptions);
+      if (session?.user?.email) {
+        email = session.user.email;
+      }
+    } catch {}
+
+    if (!email) {
+      email = req?.cookies?.get("revid_user_email")?.value;
+    }
 
     if (!email) {
       return NextResponse.json({ authenticated: false, user: null });

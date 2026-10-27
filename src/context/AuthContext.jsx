@@ -1,17 +1,19 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState(null);
   const [credits, setCredits] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // Fetch initial session and credits from database
+  // Fetch live session and credits from database
   const refreshSession = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
@@ -19,6 +21,9 @@ export function AuthProvider({ children }) {
       if (res.ok && data.user) {
         setUser(data.user);
         setCredits(data.user.credits ?? 0);
+      } else {
+        setUser(null);
+        setCredits(0);
       }
     } catch (err) {
       console.error("[AUTH CONTEXT] Error fetching session:", err);
@@ -27,9 +32,16 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Sync when NextAuth session status changes
   useEffect(() => {
-    refreshSession();
+    if (status === "authenticated" && session?.user) {
+      refreshSession();
+    } else if (status === "unauthenticated") {
+      refreshSession();
+    }
+  }, [session, status, refreshSession]);
 
+  useEffect(() => {
     // Listen to cross-component credits sync events
     const handleSync = (e) => {
       if (typeof e.detail?.credits === "number") {
@@ -39,41 +51,26 @@ export function AuthProvider({ children }) {
     };
     window.addEventListener("revid-credits-updated", handleSync);
     return () => window.removeEventListener("revid-credits-updated", handleSync);
-  }, [refreshSession]);
+  }, []);
 
-  // Login handler
-  const login = async ({ email, name, image } = {}) => {
-    if (!email) {
-      throw new Error("Please enter your email to sign in.");
-    }
+  // Google Login handler
+  const loginWithGoogle = async (callbackUrl = "/") => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, image }),
-      });
-      const data = await res.json();
-      if (res.ok && data.user) {
-        setUser(data.user);
-        setCredits(data.user.credits ?? 0);
-        setIsLoginModalOpen(false);
-        return { success: true, user: data.user };
-      }
-      throw new Error(data.error || "Login failed");
+      await signIn("google", { callbackUrl });
     } catch (err) {
-      console.error("[AUTH] Login error:", err);
-      throw err;
-    } finally {
+      console.error("[AUTH] Google Sign-In error:", err);
       setIsLoading(false);
+      throw err;
     }
   };
 
-  // Logout handler
+  // Sign out handler
   const logout = async () => {
     setIsLoading(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      await signOut({ redirect: false });
       setUser(null);
       setCredits(0);
     } catch (err) {
@@ -167,7 +164,8 @@ export function AuthProvider({ children }) {
         setIsTopUpOpen,
         isLoginModalOpen,
         setIsLoginModalOpen,
-        login,
+        loginWithGoogle,
+        login: loginWithGoogle,
         logout,
         refreshSession,
         deductCredits,
