@@ -38,11 +38,28 @@ function StudioContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
-  // Check Supabase connection and handle incoming prompt on load
+  // Check Supabase connection and handle incoming prompt or remix on load
   useEffect(() => {
     const promptParam = searchParams.get("prompt");
     const durationParam = searchParams.get("duration");
-    if (promptParam) {
+    const remixParam = searchParams.get("remix");
+
+    if (remixParam === "active" && typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("revid_pending_remix");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.scenes && parsed.scenes.length > 0) {
+            setProjectTitle(parsed.title || "Remixed Video");
+            setScenes(parsed.scenes);
+            setCurrentSceneIndex(0);
+            sessionStorage.removeItem("revid_pending_remix");
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load remix script:", e);
+      }
+    } else if (promptParam) {
       handleGenerateAiScript(promptParam, Number(durationParam) || 30);
     }
 
