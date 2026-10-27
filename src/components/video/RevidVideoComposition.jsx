@@ -140,6 +140,7 @@ function SceneVisual({ scene, durationInFrames }) {
 export function RevidVideoComposition({
   scenes = [],
   captionStyle = "hormozi",
+  captionStyleId,
   musicTrackUrl = "",
   musicVolume = 0.25,
 }) {
@@ -148,12 +149,27 @@ export function RevidVideoComposition({
 
   const progressPercent = Math.min(100, (currentFrame / durationInFrames) * 100);
 
+  // If scenes is empty, render the default zen meditation visual matching screenshot
+  const activeScenes =
+    scenes && scenes.length > 0
+      ? scenes
+      : [
+          {
+            id: "default-monk",
+            badge: "",
+            narration: "",
+            visualId: "monk-meditation",
+            imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1080&auto=format&fit=crop&q=80",
+            durationSeconds: Math.max(5, Math.round(durationInFrames / fps)),
+          },
+        ];
+
   let accumulatedFrames = 0;
 
   return (
     <AbsoluteFill className="bg-black select-none font-sans">
       {/* Dynamic Scenes Sequence */}
-      {scenes.map((scene, index) => {
+      {activeScenes.map((scene, index) => {
         const sceneDurationInFrames = Math.max(30, (scene.durationSeconds || 5) * fps);
         const fromFrame = accumulatedFrames;
         accumulatedFrames += sceneDurationInFrames;
@@ -168,7 +184,7 @@ export function RevidVideoComposition({
             <SceneCaptions
               narration={scene.narration}
               durationInFrames={sceneDurationInFrames}
-              captionStyleId={captionStyle}
+              captionStyleId={captionStyleId || captionStyle}
             />
           </Sequence>
         );
@@ -182,12 +198,15 @@ export function RevidVideoComposition({
         />
       </div>
 
-      {/* Background Music Layer */}
-      {musicTrackUrl && (
+      {/* Background Music Layer (Only if valid object URL or audio) */}
+      {musicTrackUrl && (musicTrackUrl.startsWith("blob:") || musicTrackUrl.startsWith("http")) && (
         <Audio
           src={musicTrackUrl}
           volume={musicVolume}
           loop
+          onError={(err) => {
+            console.warn("Audio element recovered:", err);
+          }}
         />
       )}
     </AbsoluteFill>

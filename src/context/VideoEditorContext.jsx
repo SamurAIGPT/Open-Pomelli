@@ -328,14 +328,19 @@ export function VideoEditorProvider({ initialProjectId, children }) {
 
   // Seek Remotion Player to specific second or scene
   const seekToSecond = useCallback((seconds) => {
-    if (!playerRef.current) return;
     const targetFrame = Math.max(0, Math.min(durationInFrames - 1, Math.round(seconds * fps)));
-    playerRef.current.seekTo(targetFrame);
     setCurrentFrame(targetFrame);
+    if (playerRef.current) {
+      try {
+        playerRef.current.seekTo(targetFrame);
+      } catch (err) {
+        console.warn("Remotion seek error:", err);
+      }
+    }
   }, [durationInFrames, fps]);
 
   const seekToScene = useCallback((index) => {
-    if (!playerRef.current || index < 0 || index >= scenes.length) return;
+    if (index < 0 || index >= scenes.length) return;
     let accSeconds = 0;
     for (let i = 0; i < index; i++) {
       accSeconds += Number(scenes[i]?.durationSeconds) || 5;
@@ -345,13 +350,34 @@ export function VideoEditorProvider({ initialProjectId, children }) {
   }, [scenes, seekToSecond]);
 
   const togglePlay = useCallback(() => {
-    if (!playerRef.current) return;
-    if (isPlaying) {
-      playerRef.current.pause();
+    if (playerRef.current) {
+      try {
+        if (playerRef.current.isPlaying()) {
+          playerRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          // If at the end of video, loop or seek to 0 first
+          if (currentFrame >= durationInFrames - 1) {
+            playerRef.current.seekTo(0);
+            setCurrentFrame(0);
+          }
+          const playPromise = playerRef.current.play();
+          setIsPlaying(true);
+          if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch((err) => {
+              console.warn("Remotion play error caught:", err);
+              setIsPlaying(false);
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("togglePlay error:", err);
+        setIsPlaying((prev) => !prev);
+      }
     } else {
-      playerRef.current.play();
+      setIsPlaying((prev) => !prev);
     }
-  }, [isPlaying]);
+  }, [currentFrame, durationInFrames]);
 
   // Upload Media handler
   const uploadMedia = useCallback((file) => {

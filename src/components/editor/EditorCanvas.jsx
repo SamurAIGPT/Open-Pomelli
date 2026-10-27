@@ -23,6 +23,7 @@ export function EditorCanvas() {
     setSafeZonesEnabled,
     isCanvasSelected,
     setIsCanvasSelected,
+    audioTrackData,
   } = useVideoEditor();
 
   const [isMounted, setIsMounted] = useState(false);
@@ -112,41 +113,34 @@ export function EditorCanvas() {
           </div>
 
           {isMounted ? (
-            hasScenes ? (
-              <Player
-                ref={playerRef}
-                component={RevidVideoComposition}
-                inputProps={{
-                  scenes,
-                  captionStyleId: captionStyle,
-                  musicTrackUrl: musicTrack ? `/music/${musicTrack}.mp3` : "",
-                  musicVolume,
-                  aspectRatio,
-                }}
-                durationInFrames={durationInFrames}
-                fps={fps}
-                compositionWidth={compWidth}
-                compositionHeight={compHeight}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                }}
-                controls={false}
-                loop
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onFrameUpdate={(frame) => setCurrentFrame(frame)}
-              />
-            ) : (
-              // Exact visual from screenshot (monk in tree over river) when project initializes
-              <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-                <img
-                  src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1080&auto=format&fit=crop&q=80"
-                  alt="Video Canvas"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )
+            <Player
+              ref={playerRef}
+              component={RevidVideoComposition}
+              inputProps={{
+                scenes,
+                captionStyleId: captionStyle,
+                musicTrackUrl:
+                  audioTrackData?.url &&
+                  (audioTrackData.url.startsWith("blob:") || audioTrackData.url.startsWith("http"))
+                    ? audioTrackData.url
+                    : "",
+                musicVolume,
+                aspectRatio,
+              }}
+              durationInFrames={durationInFrames}
+              fps={fps}
+              compositionWidth={compWidth}
+              compositionHeight={compHeight}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              controls={false}
+              loop
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onFrameUpdate={(frame) => setCurrentFrame(frame)}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 text-zinc-400">
               <Sparkles className="w-5 h-5 animate-spin text-zinc-400" />
