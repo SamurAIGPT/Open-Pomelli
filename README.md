@@ -1,125 +1,112 @@
-<p align="center">
-  <a href="https://github.com/SamurAIGPT/revideo/stargazers"><img src="https://img.shields.io/github/stars/SamurAIGPT/revideo?style=flat-square" alt="GitHub stars"></a>
-  <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16">
-  <img src="https://img.shields.io/badge/Remotion-4-blue?style=flat-square&logo=remotion" alt="Remotion 4">
-</p>
+# Open Pomelli
 
-<h1 align="center">Revideo</h1>
+Open-source alternative to Google's Pomelli. Paste any website URL → get an editable Brand DNA, on-brand campaign concepts, platform-specific creatives, AI product photography, and short-form videos. Self-hosted, single-user, no auth, no cloud queues — runs locally on SQLite.
 
-<p align="center">
-  An AI-assisted workspace for scripting, editing, and previewing short-form videos.
-</p>
+All AI calls (text, vision, image, image-edit, video) route through a single provider: [MuAPI](https://muapi.ai). Free **sandbox keys** are available for testing.
 
-Revideo is a self-hostable Next.js app for building scene-based videos for TikTok, Instagram Reels, and YouTube Shorts. Write a draft from a prompt, arrange scenes in an editor, preview a Remotion composition, and save projects to PostgreSQL.
+## Related Projects
 
-## What you can do
+- [MuAPI image-generation playground](https://muapi.ai/playground/gpt-image-2-text-to-image?utm_source=github&utm_medium=readme&utm_campaign=open-pomelli) — run the text-to-image and brand-creative workflows behind this app
+- [MuAPI video-generation docs](https://muapi.ai/docs/video-generation?utm_source=github&utm_medium=readme&utm_campaign=open-pomelli) — build the short-form video side of the campaign pipeline
+- [awesome-vibecoded-saas](https://github.com/Anil-matcha/awesome-vibecoded-saas) — broader catalog of open-source SaaS alternatives featuring Open-Pomelli.
+- [Muapi open-source alternatives](https://muapi.ai/open-source/alternative) — see the broader comparison directory and the roadmap around this campaign workflow.
+- [Open-Poe-AI](https://github.com/Anil-matcha/Open-Poe-AI) — Open-source Poe alternative — chat with GPT, Claude, Gemini from one interface
+- [open-character-ai](https://github.com/Anil-matcha/open-character-ai) — Open-source Character.AI alternative with custom AI personas
 
-- Turn a topic into a short script with scenes, narration, and suggested visuals.
-- Edit a project in a multi-track timeline and preview it in the browser.
-- Choose portrait, landscape, or square layouts, caption styles, music, and safe-zone guides.
-- Save and reopen projects with a PostgreSQL database managed through Prisma.
-- Search YouTube through the YouTube Data API and search TikTok or Instagram through MuAPI.
-- Generate remix script drafts from discovered videos.
+## Features
 
-## Requirements and provider costs
+- **Brand DNA extraction** — paste a URL, Playwright scrapes the site, the screenshot is uploaded to MuAPI, and `gpt-5-nano` (text + vision) merges with CSS-extracted colors / fonts / logo into an editable brand profile.
+- **Editable DNA review** — chips for tone / personality / messages, native color pickers for primary and secondary palettes.
+- **Campaign generation** — pick a goal (product launch, lead gen, awareness, engagement, thought leadership, sales) and an optional direction → 4 distinct on-brand concepts.
+- **Platform-specific asset generation** — one click produces ready-to-post creatives across **8 formats** (Instagram feed/story, LinkedIn, Facebook ad, X/Twitter, web banner, email header, YouTube thumbnail), each with its own aspect ratio, copy word-caps, and tone. Logo (when detected) is passed as a reference image to `nano-banana-edit` for brand consistency.
+- **In-browser canvas editor** — every generated asset opens an editor with a 9-position grid for headline / body / CTA blocks, controls for size / color / background / font / alignment. Swap the AI image, regenerate a clean (text-free) background, or upload your own.
+- **AI Photo Studio** — **6 categories × 5 styles = 30 product-photography presets** (Studio white, marble clean, urban street, golden hour, restaurant plated, scandi living, dark techy, …). Powered by `nano-banana-2-edit` with the product photo and brand logo as references.
+- **Animate** — turn any asset, photoshoot, or fresh upload into a 3–12 second video via `seedance-lite-i2v`. 480p / 720p / 1080p. Aspect ratio inherits from the source frame, so 9:16 stories drop right in.
 
-The app runs on your own infrastructure. You need Node.js, npm, and PostgreSQL. Google OAuth is used for sign-in. YouTube search and MuAPI integrations need their own API keys; provider usage, hosting, and database costs may apply.
-
-Script generation calls the OpenAI Chat Completions API and falls back to a local heuristic script if the remote request fails. The current route checks `MUAPIAPP_API_KEY` before `OPENAI_API_KEY` for that request. If you want OpenAI script generation, clear the example value and leave `MUAPIAPP_API_KEY` unset unless that key is also accepted by the OpenAI endpoint. MuAPI uses `MUAPIAPP_API_KEY` for social search and remix features.
-
-The editor provides an in-browser Remotion preview. **MP4 export is not implemented yet:** the export dialog currently simulates progress, downloads a sample stock clip, and records render metadata. It does not encode the edited project into a video file.
-
-## How it works
-
-- **App:** Next.js 16 App Router and React 19
-- **Editor preview:** Remotion Player 4
-- **Styling:** Tailwind CSS 4
-- **Database:** PostgreSQL with Prisma 7
-- **Authentication:** NextAuth with Google OAuth
-- **Video discovery:** YouTube Data API and MuAPI
-
-## Run locally
-
-### 1. Install
-
-Requirements: Node.js 20.9 or newer, npm, and a PostgreSQL database.
+## Quickstart
 
 ```bash
-git clone https://github.com/SamurAIGPT/revideo.git
-cd revideo
+git clone https://github.com/SamurAIGPT/Open-Pomelli.git
+cd Open-Pomelli
+
+cp .env.example .env
+# Fill MUAPI_API_KEY (sandbox keys are free at muapi.ai)
+
 npm install
-cp .env.example .env.local
-```
-
-### 2. Configure environment
-
-Fill in the database and provider values in `.env.local`. Add the authentication values below; they are required by the app but are not currently included in `.env.example`:
-
-```env
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="replace-with-a-long-random-secret"
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-```
-
-Set the provider keys you plan to use:
-
-```env
-OPENAI_API_KEY="your-openai-api-key"
-YOUTUBE_API_KEY="your-youtube-data-api-key"
-MUAPIAPP_API_KEY="your-muapi-api-key"
-```
-
-`DATABASE_URL` should point to your PostgreSQL connection. Set `DIRECT_URL` to the direct database connection used by Prisma commands. The repository includes a Supabase-oriented example; any compatible PostgreSQL database can be used.
-
-In Google Cloud, add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI. Keep provider secrets server-side and out of commits.
-
-### 3. Set up the database and start
-
-```bash
+npx playwright install chromium
 npx prisma db push
-npx prisma generate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open http://localhost:3000 and paste a website URL.
 
-To make a production build, run:
+## Stack
 
-```bash
-npm run build
-npm start
+- **Framework**: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4
+- **Storage**: SQLite via Prisma (single `dev.db` file, zero-config)
+- **Scraping**: Playwright (headless Chromium)
+- **AI provider**: MuAPI (single client at `src/lib/muapi.ts`)
+
+No Postgres, Redis, BullMQ, or Docker required. No auth, no OAuth. One-machine, one-user.
+
+## MuAPI endpoints used
+
+| Capability | Endpoint |
+| --- | --- |
+| File upload | `POST /upload_file` (multipart) |
+| Text + vision | `POST /gpt-5-nano` |
+| Image generation | `POST /nano-banana`, `POST /nano-banana-edit` |
+| Premium image (Photo Studio) | `POST /nano-banana-2`, `POST /nano-banana-2-edit` |
+| Image-to-video | `POST /seedance-lite-i2v` |
+| Text-to-video | `POST /seedance-lite-t2v` |
+| Result polling | `GET /predictions/{request_id}/result` |
+
+Auth is sent via the `x-api-key` header.
+
+## Architecture
+
+```
+src/
+  app/
+    page.tsx                                     # URL input + entry points
+    brand/[id]/                                  # editable Brand DNA
+    brand/[id]/campaigns/new/                    # goal picker
+    brand/[id]/photo-studio/                     # brand-aware product photography
+    campaign/[id]/                               # 4 concepts + asset generation
+    asset/[id]/edit/                             # canvas editor
+    photo-studio/                                # standalone product photography
+    animate/                                     # image-to-video
+    api/                                         # all server routes
+  lib/
+    muapi.ts                                     # the only MuAPI client
+    scraper.ts                                   # Playwright site scraper
+    brand-analyzer.ts                            # text + vision DNA orchestrator
+    campaign-generator.ts                        # 6 goals → 4 concepts
+    asset-generator.ts                           # copy + image per asset
+    platforms.ts                                 # 8-platform catalog
+    layout.ts                                    # canvas overlay schema
+    photo-styles.ts                              # 6 categories × 5 styles
+    photo-studio.ts                              # photoshoot orchestrator
+    animate.ts                                   # i2v orchestrator
+    colors.ts, prisma.ts                         # utils
+prisma/schema.prisma                             # BrandDNA, Campaign, Asset, Photoshoot, Animation
 ```
 
-## API routes
+### Conventions
+- Every AI call goes through `src/lib/muapi.ts` — never `fetch` MuAPI elsewhere.
+- Array fields on SQLite rows are stored as JSON strings; PATCH endpoints accept arrays and stringify on the server.
+- Generation is synchronous: routes block until MuAPI returns, the client paginates with N parallel requests (concurrency 2–3) and shows live per-task progress.
 
-| Route | Methods | Purpose |
-| :--- | :--- | :--- |
-| `/api/generate-script` | `POST` | Create a scene-based script from a prompt. |
-| `/api/projects` | `GET`, `POST`, `DELETE` | List, save, or delete video projects. |
-| `/api/projects/[id]` | `GET`, `PUT`, `DELETE` | Read, update, or delete a project by ID. |
-| `/api/repurpose/search` | `GET`, `POST` | Search for videos by platform and topic. |
-| `/api/repurpose/videos` | `GET`, `POST` | Search and filter video results. |
-| `/api/repurpose/remix` | `POST` | Request a remix script through MuAPI. |
-| `/api/saved-videos` | `GET`, `POST`, `DELETE` | Manage saved video references. |
-| `/api/renders` | `POST` | Save render metadata. This does not render a video file. |
+## Roadmap ideas
 
-## Project structure
+- HTML-to-PNG/MP4 export for canvas-edited assets
+- Optional OAuth publishing to Meta / X / LinkedIn (currently out of scope)
+- Multi-brand workspace switcher
+- Template library for Photo Studio styles
+- Veo-based Animate when MuAPI exposes it
 
-```text
-src/app/          Pages and API routes
-src/components/   Editor, player, studio, and authentication UI
-src/context/      Editor and authentication state
-src/lib/          Database, auth, provider, and media helpers
-prisma/           PostgreSQL schema
-supabase/         Supabase SQL schema
-public/videos/    Sample video clips
-```
-
-## Contributing
-
-Issues and pull requests are welcome. For changes to integrations, include the provider and required environment variables in the description.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-There is currently no `LICENSE` file in this repository, so no license is declared. Check the repository's license status before reusing or distributing the code.
+MIT — see [LICENSE](LICENSE).
